@@ -1,0 +1,117 @@
+{
+  "mono_store_products_v2": [
+    {
+      "id": 1,
+      "name": "Minimalist futbolka",
+      "category": "men",
+      "cat": "Erkaklar",
+      "sub": "Futbolka",
+      "price": 89000,
+      "emoji": "👕"
+    },
+    {
+      "id": 2,
+      "name": "Kundalik sumka",
+      "category": "women",
+      "cat": "Ayollar",
+      "sub": "Sumka",
+      "price": 159000,
+      "emoji": "👜"
+    },
+    {
+      "id": 3,
+      "name": "Sport krossovka",
+      "category": "men",
+      "cat": "Erkaklar",
+      "sub": "Oyoq kiyim",
+      "price": 289000,
+      "emoji": "👟"
+    },
+    {
+      "id": 4,
+      "name": "Bolalar kiyimi",
+      "category": "kids",
+      "cat": "Bolalar",
+      "sub": "Kiyim",
+      "price": 99000,
+      "emoji": "🧸"
+    },
+    {
+      "id": 5,
+      "name": "Zamonaviy soat",
+      "category": "accessories",
+      "cat": "Aksessuarlar",
+      "sub": "Soat",
+      "price": 199000,
+      "emoji": "⌚"
+    },
+    {
+      "id": 6,
+      "name": "Sovg‘a qutisi",
+      "category": "souvenirs",
+      "cat": "Suvenirlar",
+      "sub": "Sovg‘a",
+      "price": 69000,
+      "emoji": "🎁"
+    },
+    {
+      "id": 7,
+      "name": "Ayollar ko‘ylagi",
+      "category": "women",
+      "cat": "Ayollar",
+      "sub": "Ko‘ylak",
+      "price": 219000,
+      "emoji": "👗"
+    },
+    {
+      "id": 8,
+      "name": "Quloqchin",
+      "category": "accessories",
+      "cat": "Aksessuarlar",
+      "sub": "Elektronika",
+      "price": 129000,
+      "emoji": "🎧"
+    },
+    {
+      "id": 9,
+      "name": "Bolalar krossovkasi",
+      "category": "kids",
+      "cat": "Bolalar",
+      "sub": "Oyoq kiyim",
+      "price": 119000,
+      "emoji": "👟"
+    },
+    {
+      "id": 10,
+      "name": "Ko‘zoynak",
+      "category": "accessories",
+      "cat": "Aksessuarlar",
+      "sub": "Ko‘zoynak",
+      "price": 79000,
+      "emoji": "🕶️"
+    }
+  ],
+  "mono_store_settings_v2": {
+    "accent": "#b7f34a"
+  },
+  "mono_store_slides_v2": [
+    {
+      "title": "O‘zingga mos uslubni top.",
+      "text": "Har kun uchun zamonaviy tanlovlar.",
+      "emoji": "✨"
+    },
+    {
+      "title": "Yangi kolleksiya",
+      "text": "Yangi mahsulotlarni kashf et.",
+      "emoji": "🛍️"
+    },
+    {
+      "title": "Sovg‘a qilish vaqti",
+      "text": "Yaqinlaring uchun o‘zgacha sovg‘alar.",
+      "emoji": "🎁"
+    }
+  ],
+  "mono_store_cart_events_v1": [],
+  "shoply_reviews_v1": {},
+  "shoply_orders_v1": []
+}

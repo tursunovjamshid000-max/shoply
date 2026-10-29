@@ -1,0 +1,9 @@
+{
+  "name": "shoply-store",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SHOPLY online store with JSON-backed product and review storage",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" }
+}
