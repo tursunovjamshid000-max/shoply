@@ -177,7 +177,7 @@ main.wrap{margin-left:0;max-width:none;width:100%}
 }
 </style></head><body>
 <header><div class="wrap"><div class="head">
- <button class="menu-toggle" id="menuToggle" aria-label="Menyuni ochish">☰</button>
+ <button class="menu-toggle" id="menuToggle" aria-label="Menyuni ochish">☰</button><div class="logo" id="home">SHOP<span>LY.</span></div>
  <div class="search"><input id="search" placeholder="Mahsulot qidirish..."></div>
  <div class="actions"><button class="ibtn" id="favBtn">♡ <em>Sevimlilar</em> <b id="favN">0</b></button><button class="ibtn" id="cartBtn">🛍 <em>Savat</em> <b id="cartN">0</b></button><button class="ibtn" id="setBtn">⚙</button></div>
 </div></div></header>
@@ -200,8 +200,79 @@ main.wrap{margin-left:0;max-width:none;width:100%}
 <div class="bg" id="dbg"><div class="modal big"><button class="x" id="dx">✕</button><div id="dc"></div></div></div>
 <div class="toast" id="toast"></div>
 <script>
+/* SHOPLY shared storage bridge: keeps the existing interface unchanged. */
+(function(){
+  const KEYS=['mono_store_products_v2','mono_store_settings_v2','mono_store_slides_v2','mono_store_cart_events_v1','shoply_orders_v1','shoply_reviews_v1'];
+  const nativeGet=Storage.prototype.getItem;
+  const nativeSet=Storage.prototype.setItem;
+  const nativeRemove=Storage.prototype.removeItem;
+  const pending=new Set();
+  const queues=new Map();
+  let applyingRemote=false;
+  const endpoint='/api/state';
+  const isShared=k=>KEYS.includes(String(k));
+  function fire(key){
+    try{window.dispatchEvent(new CustomEvent('shoply:shared-update',{detail:{key}}));}catch{}
+  }
+  async function put(key,raw){
+    if(pending.has(key)){
+      const prev=queues.get(key)||Promise.resolve();
+      const next=prev.catch(()=>{}).then(()=>send(key,raw));
+      queues.set(key,next); return next;
+    }
+    const prev=queues.get(key)||Promise.resolve();
+    const next=prev.catch(()=>{}).then(()=>send(key,raw));
+    queues.set(key,next); return next;
+  }
+  async function send(key,raw){
+    pending.add(key);
+    try{
+      let value; try{value=JSON.parse(raw)}catch{return false}
+      const r=await fetch(endpoint+'/'+encodeURIComponent(key),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({value}),cache:'no-store'});
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      return true;
+    }catch(e){console.error('SHOPLY shared save failed:',key,e);return false}
+    finally{pending.delete(key)}
+  }
+  async function pull(initial){
+    try{
+      const r=await fetch(endpoint,{cache:'no-store'});
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      const state=await r.json();
+      for(const key of KEYS){
+        if(Object.prototype.hasOwnProperty.call(state,key)){
+          const raw=JSON.stringify(state[key]);
+          if(nativeGet.call(localStorage,key)!==raw && !pending.has(key)){
+            applyingRemote=true; nativeSet.call(localStorage,key,raw); applyingRemote=false; fire(key);
+          }
+        }else if(initial){
+          const local=nativeGet.call(localStorage,key);
+          if(local!==null) await put(key,local);
+        }
+      }
+      return true;
+    }catch(e){console.error('SHOPLY shared load failed:',e);return false}
+  }
+  window.shoplyReady=pull(true);
+  Storage.prototype.setItem=function(key,value){
+    nativeSet.call(this,key,value);
+    if(this===localStorage && isShared(key) && !applyingRemote) put(String(key),String(value));
+  };
+  Storage.prototype.removeItem=function(key){
+    nativeRemove.call(this,key);
+    if(this===localStorage && isShared(key) && !applyingRemote){
+      fetch(endpoint+'/'+encodeURIComponent(key),{method:'DELETE'}).catch(e=>console.error('SHOPLY shared delete failed:',e));
+    }
+  };
+  window.addEventListener('online',()=>pull(false));
+  window.setInterval(()=>{if(!document.hidden)pull(false)},5000);
+})();
+</script>
+
+<script>
 'use strict';
 (async()=>{
+await window.shoplyReady;
 const $=id=>document.getElementById(id);
 const K={products:'mono_store_products_v2',settings:'mono_store_settings_v2',slides:'mono_store_slides_v2',cart:'shoply_cart_v1',fav:'shoply_favorites_v1',orders:'shoply_orders_v1',reviews:'shoply_reviews_v1',profile:'shoply_user_profile_v1',events:'mono_store_cart_events_v1'};
 const rd=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},wr=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{toast('Xotira to‘ldi')}};
@@ -323,10 +394,11 @@ $('menuToggle').onclick=()=>{$('shopSide').classList.add('open');$('shopBackdrop
 $('shopBackdrop').onclick=closeShopMenu;
 $('cartBtn').onclick=cartM;$('favBtn').onclick=favM;$('setBtn').onclick=setM;$('sideProfile').onclick=profileM;$('search').oninput=render;$('sort').onchange=render;
 $('home').onclick=()=>{cat='all';sub='all';$('search').value='';render();scrollTo({top:0,behavior:'smooth'})};$('shopNow').onclick=()=>$('ps').scrollIntoView({behavior:'smooth'});showBanner();
-try{const r=await fetch('/api/state',{cache:'no-store'});if(r.ok){const s=await r.json();if(Array.isArray(s[K.products]))products=s[K.products];if(s[K.settings])settings=s[K.settings];if(Array.isArray(s[K.slides]))slides=s[K.slides]}}catch{}
+try{const r=await fetch('/api/state',{cache:'no-store'});if(r.ok){const s=await r.json();if(Array.isArray(s[K.products]))products=s[K.products];if(s[K.settings])settings=s[K.settings];if(Array.isArray(s[K.slides]))slides=s[K.slides];if(Array.isArray(s[K.orders]))wr(K.orders,s[K.orders]);if(s[K.reviews])wr(K.reviews,s[K.reviews]);if(Array.isArray(s[K.events]))wr(K.events,s[K.events])}}catch{}
 if(slides.length){let i=0;const rotate=()=>{const active=slides.filter(x=>x&&x.active!==false);if(!active.length)return;const s=active[i++%active.length];$('hTag').textContent=s.tag||'SHOPLY · MAXSUS TAKLIF';$('hT').textContent=s.title||'SHOPLY';$('hP').textContent=s.description||s.text||'';$('hero').style.backgroundImage=`linear-gradient(100deg,#141a12e8 15%,#141a1240),url("${String(s.image||'').replace(/["\\]/g,'')}")`;$('shopNow').textContent=s.button||'Xarid qilish ↗';$('shopNow').onclick=()=>s.link?location.href=s.link:$('ps').scrollIntoView({behavior:'smooth'})};rotate();if(slides.filter(x=>x&&x.active!==false).length>1)setInterval(rotate,5000)}
 if(settings.accent)document.documentElement.style.setProperty('--accent',settings.accent);
 addEventListener('storage',e=>{if(e.key===K.products){products=rd(K.products,[]);render()}});
+window.addEventListener('shoply:shared-update',e=>{const k=e.detail?.key;if(k===K.products){products=rd(K.products,[]);render()}else if(k===K.settings){settings=rd(K.settings,{});if(settings.accent)document.documentElement.style.setProperty('--accent',settings.accent)}else if(k===K.slides){slides=rd(K.slides,[]);showBanner()}});
 render();track('visit');
 })();
 </script></body></html>

@@ -1,21 +1,17 @@
-SHOPLY — NETLIFY SHARED STORAGE BUILD
+SHOPLY — SHARED DATA BUILD (ORIGINAL DESIGN PRESERVED)
 
-Bu versiya Netlify Functions + Netlify Blobs orqali mahsulotlar, sozlamalar, sharhlar va buyurtmalarni bitta umumiy doimiy saqlash joyiga yozadi. Bir Telegram Mini App ichida bir xil Netlify domenini ochgan barcha foydalanuvchilar bitta ma’lumotni ko‘radi.
+Dizayn/CSS/HTML ko‘rinishi o‘zgartirilmagan. Root index.html va admin.html aynan Netlify publish papkasi public/ ichiga ham qo‘yilgan; Netlify endi eski public dizaynini emas, siz yuborgan oxirgi dizaynni ko‘rsatadi.
 
-Fayllar:
-- public/index.html — xaridor sayti
-- public/admin.html — admin paneli
-- netlify/functions/state.mjs — umumiy ma’lumotlar API
-- netlify/functions/orders.mjs — buyurtmalar API
-- netlify.toml — Netlify yo‘llari
+Umumiy ma’lumotlar Netlify Functions + Netlify Blobs orqali saqlanadi:
+- Mahsulotlar, sozlamalar, bannerlar, sharhlar va tashriflar: /api/state
+- Buyurtmalar: /api/orders (admin panel o‘qiydigan shoply_orders_v1 umumiy kalitiga yoziladi)
+- Admin yoki foydalanuvchi ma’lumotni yangilasa, boshqa ochiq sahifalar 5 soniyagacha bo‘lgan intervalda yangilaydi.
 
 DEPLOY:
-1. Butun loyiha papkasini GitHub repository ga yuklang (GitHub saytining Add file / Upload files funksiyasidan foydalanish mumkin).
-2. Netlify dashboard > Add new site > Import an existing project > GitHub orqali repository ni ulang.
-3. Build settings da publish directory = public bo‘lsin; functions directory = netlify/functions.
-4. Deploy tugagach, mavjud Netlify domeningizga deploy qiling. Faqat public papkasini alohida drag-and-drop qilish yetmaydi, chunki serverless functions ham deploy qilinishi shart.
-5. Saytning asosiy sahifasi va Telegram Mini App URL aynan shu Netlify domenida qolsin.
+1. ZIPni oching va ichidagi SHOPLY_REBUILT papkasining BUTUN tarkibini GitHub repository rootiga yuklang.
+2. Netlify build settings: Publish directory = public; Functions directory = netlify/functions.
+3. @netlify/blobs dependency package.json da mavjud. Netlify'da qayta deploy qiling.
+4. Deploy tugagach, asosiy URL va /admin.html ni ochib tekshiring.
+5. Netlify Blobs birinchi ishga tushishda shared store yaratadi. Eski localStorage'dagi mahsulotlar bo‘lsa, birinchi marta admin ochilgan qurilmadan serverga ko‘chiriladi.
 
-Eslatma: serverless functionlar Netlify Blobs ni birinchi ishlatganda storage yaratadi. Mahsulotlar va sharhlar browser localStorage ga emas, shared Blobs store ga yuboriladi. Birinchi marta yangi backendga o‘tilganda eski qurilmalardagi faqat localStorage da turgan mahsulotlarni admin panelida qayta saqlash/import qilish kerak bo‘lishi mumkin.
-
-XAVFSIZLIK: admin panelining mavjud login tekshiruvi frontendda qolgan. Haqiqiy savdo uchun admin API ga server-side autentifikatsiya qo‘shish tavsiya etiladi.
+Eslatma: Bu loyiha ichidagi amaldagi shared backend Netlify Blobs. ZIP ichida Appwrite SDK yoki Appwrite API integratsiyasi yo‘q; bu versiya umumiy ko‘rinishni Netlify Blobs orqali ta’minlaydi.

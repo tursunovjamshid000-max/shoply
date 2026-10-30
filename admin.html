@@ -303,6 +303,76 @@ html,body{min-height:100%;height:100%}
 <div class="toast" id="toast"></div>
 
 <script>
+/* SHOPLY shared storage bridge: keeps the existing interface unchanged. */
+(function(){
+  const KEYS=['mono_store_products_v2','mono_store_settings_v2','mono_store_slides_v2','mono_store_cart_events_v1','shoply_orders_v1','shoply_reviews_v1'];
+  const nativeGet=Storage.prototype.getItem;
+  const nativeSet=Storage.prototype.setItem;
+  const nativeRemove=Storage.prototype.removeItem;
+  const pending=new Set();
+  const queues=new Map();
+  let applyingRemote=false;
+  const endpoint='/api/state';
+  const isShared=k=>KEYS.includes(String(k));
+  function fire(key){
+    try{window.dispatchEvent(new CustomEvent('shoply:shared-update',{detail:{key}}));}catch{}
+  }
+  async function put(key,raw){
+    if(pending.has(key)){
+      const prev=queues.get(key)||Promise.resolve();
+      const next=prev.catch(()=>{}).then(()=>send(key,raw));
+      queues.set(key,next); return next;
+    }
+    const prev=queues.get(key)||Promise.resolve();
+    const next=prev.catch(()=>{}).then(()=>send(key,raw));
+    queues.set(key,next); return next;
+  }
+  async function send(key,raw){
+    pending.add(key);
+    try{
+      let value; try{value=JSON.parse(raw)}catch{return false}
+      const r=await fetch(endpoint+'/'+encodeURIComponent(key),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({value}),cache:'no-store'});
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      return true;
+    }catch(e){console.error('SHOPLY shared save failed:',key,e);return false}
+    finally{pending.delete(key)}
+  }
+  async function pull(initial){
+    try{
+      const r=await fetch(endpoint,{cache:'no-store'});
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      const state=await r.json();
+      for(const key of KEYS){
+        if(Object.prototype.hasOwnProperty.call(state,key)){
+          const raw=JSON.stringify(state[key]);
+          if(nativeGet.call(localStorage,key)!==raw && !pending.has(key)){
+            applyingRemote=true; nativeSet.call(localStorage,key,raw); applyingRemote=false; fire(key);
+          }
+        }else if(initial){
+          const local=nativeGet.call(localStorage,key);
+          if(local!==null) await put(key,local);
+        }
+      }
+      return true;
+    }catch(e){console.error('SHOPLY shared load failed:',e);return false}
+  }
+  window.shoplyReady=pull(true);
+  Storage.prototype.setItem=function(key,value){
+    nativeSet.call(this,key,value);
+    if(this===localStorage && isShared(key) && !applyingRemote) put(String(key),String(value));
+  };
+  Storage.prototype.removeItem=function(key){
+    nativeRemove.call(this,key);
+    if(this===localStorage && isShared(key) && !applyingRemote){
+      fetch(endpoint+'/'+encodeURIComponent(key),{method:'DELETE'}).catch(e=>console.error('SHOPLY shared delete failed:',e));
+    }
+  };
+  window.addEventListener('online',()=>pull(false));
+  window.setInterval(()=>{if(!document.hidden)pull(false)},5000);
+})();
+</script>
+
+<script>
 
 const KEY={p:'mono_store_products_v2',r:'shoply_reviews_v1',o:'shoply_orders_v1',e:'mono_store_cart_events_v1',s:'mono_store_settings_v2'};
 
@@ -322,7 +392,7 @@ const pcat=p=>p.cat||p.category||'',pimgs=p=>[...new Set([p.image,...(p.images||
 
 const allRev=()=>Object.entries(R).flatMap(([pid,l])=>l.map(r=>({...r,productId:pid})));
 
-function enter(){$('lp').classList.add('hidden');$('app').classList.remove('hidden');load();all();const h=new Date().getHours();$('gr').textContent=(h<12?'Xayrli tong':h<18?'Xayrli kun':'Xayrli kech')+', '+(S.adminName||'Admin')+' 👋'}
+async function enter(){await window.shoplyReady;$('lp').classList.add('hidden');$('app').classList.remove('hidden');load();all();const h=new Date().getHours();$('gr').textContent=(h<12?'Xayrli tong':h<18?'Xayrli kun':'Xayrli kech')+', '+(S.adminName||'Admin')+' 👋'}
 
 $('lf').onsubmit=e=>{e.preventDefault();if($('lu').value.trim()==='jamshid'&&$('lw').value==='2400'){localStorage.setItem('mono_admin_session','1');sessionStorage.setItem('mono_admin_session','1');enter()}else $('le').textContent='Login yoki parol noto‘g‘ri.'};
 
@@ -458,6 +528,7 @@ function closeAdminMenu(){$('adminSide').classList.remove('open');$('adminBackdr
 $('adminMenuToggle').onclick=()=>{$('adminSide').classList.add('open');$('adminBackdrop').classList.add('open');document.body.style.overflow='hidden'};
 $('adminBackdrop').onclick=closeAdminMenu;
 document.querySelectorAll('.nb[data-p]').forEach(b=>b.addEventListener('click',closeAdminMenu));
+window.addEventListener('shoply:shared-update',e=>{if($('app')&&!$('app').classList.contains('hidden')){load();all()}});
 if(localStorage.getItem('mono_admin_session')==='1'||sessionStorage.getItem('mono_admin_session')==='1')enter();
 
 </script></body></html>
