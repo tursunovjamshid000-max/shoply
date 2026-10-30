@@ -1,16 +1,15 @@
 {
   "name": "shoply-store",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
-  "description": "SHOPLY online store with Appwrite storage",
-  "main": "server.js",
+  "description": "SHOPLY store with shared persistent Netlify storage",
   "scripts": {
     "start": "node server.js"
   },
+  "dependencies": {
+    "@netlify/blobs": "^10.5.0"
+  },
   "engines": {
     "node": ">=18"
-  },
-  "dependencies": {
-    "node-appwrite": "^20.0.0"
   }
 }
