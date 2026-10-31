@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SHOPLY — Admin panel</title>
 <style>
-
+  
 @media(max-width:700px){
 .layout{display:block}
 .sidebar{
@@ -28,15 +28,196 @@ align-items:center;gap:3px;font-size:10px}
 .product-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .product-image{height:auto;aspect-ratio:3/4}
 .table-wrap{max-width:100%;overflow-x:auto}
+table{min-width:500px}
+.modal-card{width:100%;max-height:85dvh;overflow:auto}
 }
+
+:root{--accent:#b7f34a;--bg:#f3f5f1;--card:#fff;--ink:#171a15;--muted:#73786f;--line:#e5e9e1}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 90% 0%,color-mix(in srgb,var(--accent) 12%,transparent),transparent 28%),var(--bg);color:var(--ink);font-family:Inter,Arial,sans-serif}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.layout{display:flex;min-height:100vh}
+.sidebar{width:250px;flex-shrink:0;background:var(--card);border-right:1px solid var(--line);padding:22px 14px;display:flex;flex-direction:column;min-height:100vh;position:sticky;top:0;height:100vh}
+.logo{font-size:26px;font-weight:900;letter-spacing:2px;padding:0 10px}
+.logo span{color:#8ba925}
+.subtitle{font-size:11px;color:var(--muted);padding:7px 10px 24px}
+.nav{display:block;width:100%;border:0;background:transparent;padding:13px 12px;border-radius:10px;text-align:left;margin:3px 0;color:var(--ink)}
+.nav:hover,.nav.active{background:var(--accent);font-weight:850;transform:translateX(2px)}
+.bottom{margin-top:auto;border-top:1px solid var(--line);padding-top:13px}
+.main{padding:27px;flex:1;min-width:0;max-width:1600px;margin:auto;width:100%}
+.header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:24px}
+h1{font-size:28px;letter-spacing:-.7px;margin:0}
+h2{font-size:20px;margin:0 0 18px}
+.muted{color:var(--muted);font-size:12px;line-height:1.6}
+button.primary{border:0;background:var(--accent);color:var(--ink);border-radius:9px;padding:12px 15px;font-weight:800}
+button.secondary{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:9px;padding:10px 12px;font-weight:700}
+button.danger{border:0;background:#ffeded;color:#b4232e;border-radius:8px;padding:9px 11px;font-weight:700}
+button.edit{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:9px 11px;font-weight:700}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin-bottom:23px}
+.stat,.panel{background:var(--card);border:1px solid var(--line);border-radius:19px;padding:20px;box-shadow:0 12px 32px rgba(20,30,10,.055);transition:transform .2s,box-shadow .2s}.stat:hover,.panel:hover{box-shadow:0 16px 38px rgba(20,30,10,.08)}
+.stat-label{font-size:12px;color:var(--muted);margin-bottom:12px}
+.stat-value{font-size:25px;font-weight:900;overflow-wrap:anywhere}
+.stat-note{font-size:11px;color:var(--muted);margin-top:7px}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:20px 0 15px}
+.toolbar h2{margin:0}
+.filters{display:flex;gap:9px;flex-wrap:wrap}
+.field{width:100%;padding:11px 12px;border:1px solid #ddd;border-radius:9px;background:var(--card);color:var(--ink)}
+.search{max-width:300px}
+.product-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+.product-card{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;min-width:0;box-shadow:0 7px 22px rgba(20,30,10,.045);transition:.2s}
+.product-image{height:195px;background:#eee;position:relative}
+.product-image img{height:100%;width:100%;object-fit:cover;display:block}
+.badge{position:absolute;top:9px;left:9px;background:var(--accent);padding:6px 8px;border-radius:6px;font-size:10px;font-weight:900}
+.product-body{padding:13px;display:flex;flex-direction:column;flex:1}
+.category{font-size:11px;color:var(--muted);margin-bottom:7px}
+.product-name{font-size:15px;line-height:1.4;margin:0 0 9px;overflow-wrap:anywhere}
+.description{font-size:12px;color:var(--muted);line-height:1.5;margin:0 0 12px}
+.price{font-size:17px;font-weight:900;margin-top:auto}
+.old-price{font-size:12px;color:#999;text-decoration:line-through;margin-top:4px}
+.actions{display:flex;gap:8px;margin-top:13px}
+.actions button{flex:1}
+.table-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:left;padding:12px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--muted);font-size:11px}
+.empty{grid-column:1/-1;text-align:center;padding:35px;background:var(--card);border:1px dashed #ddd;border-radius:12px;color:var(--muted)}
+.section{display:none}
+.section.active{display:block}
+.modal{display:none;position:fixed;inset:0;background:#0008;z-index:20;align-items:center;justify-content:center;padding:15px}
+.modal.show{display:flex}
+.modal-card{background:var(--card);color:var(--ink);width:min(560px,100%);max-height:92vh;overflow:auto;border-radius:15px;padding:23px}
+.modal-card h2{margin-bottom:12px}
+.label{display:block;font-size:12px;font-weight:800;margin:13px 0 6px}
+.form-actions{display:flex;gap:9px;margin-top:20px}
+.form-actions button{flex:1}
+.notice{padding:12px;background:var(--bg);border-radius:9px;font-size:12px;color:var(--muted);line-height:1.6;margin:12px 0}
+.color{height:48px;width:100%;border:0;background:transparent;padding:0}
+.profile-avatar{height:70px;width:70px;border-radius:50%;background:var(--accent);display:grid;place-items:center;font-size:28px;font-weight:900;margin-bottom:15px}
+.hidden{display:none!important}
+@media(max-width:1100px){.product-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){
+ .layout{display:block}
+ .sidebar{position:static;width:100%;height:auto;min-height:0;padding:13px;border-right:0;border-bottom:1px solid var(--line)}
+ .subtitle{padding-bottom:8px}
+ .nav{width:auto;display:inline-block;padding:10px}
+ .bottom{display:flex;gap:8px;margin-top:8px;padding-top:9px}
+ .main{padding:17px 12px}
+ .header{align-items:flex-start}
+ .header h1{font-size:22px}
+ .product-grid{gap:9px}
+ .product-image{height:135px}
+ .product-body{padding:9px}
+ .product-name{font-size:13px}
+ .actions{flex-direction:column}
+ .stats{gap:8px}
+ .stat{padding:12px}
+ .stat-value{font-size:20px}
+ .search{max-width:none;width:100%}
+}
+
+
+/* ===== SHOPLY ADMIN DRAWER + RESPONSIVE ===== */
+.admin-menu-toggle{display:none;align-items:center;justify-content:center;width:43px;height:43px;flex:0 0 43px;border:1px solid var(--line);border-radius:12px;background:#fff;font-size:22px}.admin-scrim{display:none}.admin-sidebar-close{display:none}
+@media(max-width:700px){
+ .layout{display:block;min-height:100dvh}.sidebar{position:fixed;z-index:1201;top:0;bottom:0;left:0;width:min(290px,84vw);height:100dvh;min-height:0;padding:20px 14px;overflow-y:auto;transform:translateX(-105%);transition:transform .25s ease;box-shadow:12px 0 45px #1113;background:var(--card);border-right:1px solid var(--line);border-bottom:0}body.admin-drawer-open .sidebar{transform:translateX(0)}
+ .sidebar .logo{display:block;font-size:26px;padding:0 10px}.sidebar .subtitle{display:block;padding:7px 10px 24px}.sidebar .nav{display:block;width:100%;min-width:0;max-width:none;margin:3px 0;padding:13px 12px;text-align:left;border-radius:10px;font-size:14px}.sidebar .bottom{display:block;margin-top:auto;padding-top:13px;border-top:1px solid var(--line)}.sidebar .bottom button{display:block;width:100%!important;max-width:none;min-width:0;min-height:42px;margin:7px 0 0!important;padding:10px 12px;text-align:left;font-size:13px;border-radius:10px}
+ .admin-sidebar-close{display:flex;position:absolute;right:12px;top:12px;width:36px;height:36px;align-items:center;justify-content:center;border:0;border-radius:10px;background:#f0f1eb;font-size:18px}.admin-scrim{position:fixed;inset:0;z-index:1200;background:#12150f80;backdrop-filter:blur(2px)}body.admin-drawer-open .admin-scrim{display:block}
+ .main{width:100%;max-width:none;min-width:0;margin:0;padding:14px 11px 24px}.admin-menu-toggle{display:flex}.header{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;align-items:center;margin-bottom:17px}.header>div{display:flex;align-items:center;gap:9px;min-width:0}.header h1{font-size:clamp(19px,5.3vw,25px)}.header .primary{max-width:44%;font-size:11px;padding:9px 8px;white-space:normal}
+ .stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.stat{min-width:0;padding:12px 10px}.stat-value{font-size:clamp(16px,4.8vw,22px);overflow-wrap:anywhere}.panel{padding:12px}.product-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.product-image{height:auto;aspect-ratio:4/4.3}.product-image img{object-fit:contain;padding:7px}.product-body{padding:9px}.product-name{font-size:13px}.description{font-size:11px;overflow-wrap:anywhere}.actions{flex-direction:column;gap:6px}.actions button{min-height:38px;padding:8px 5px;font-size:11px}.filters{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}.field,.search{width:100%;max-width:none;min-width:0}.table-wrap{width:100%;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}table{min-width:500px}.modal{align-items:flex-end;padding:0}.modal-card{width:100%;max-width:none;max-height:90dvh;border-radius:22px 22px 0 0;padding:19px 15px calc(20px + env(safe-area-inset-bottom))}
+}
+@media(max-width:390px){.main{padding-left:9px;padding-right:9px}.product-grid{gap:8px}.product-body{padding:8px}.actions button{font-size:10px}.header .primary{max-width:47%}}
+
+
+/* SHOPLY FIX: larger, readable admin sidebar on desktop and mobile */
+@media(min-width:701px){
+  .sidebar{width:270px;padding:25px 17px}
+  .sidebar .nav{font-size:15px;padding:15px 13px;min-height:48px}
+  .sidebar .logo{font-size:29px}
+  .sidebar .subtitle{font-size:12px}
+}
+@media(max-width:700px){
+  .sidebar{position:fixed!important;top:0!important;right:auto!important;bottom:0!important;left:0!important;
+    width:min(340px,88vw)!important;height:100dvh!important;max-height:none!important;min-height:100dvh!important;
+    padding:26px 18px!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;
+    overflow-x:hidden!important;overflow-y:auto!important;transform:translateX(-105%);z-index:1201!important;
+    background:var(--card)!important;border:0!important;border-right:1px solid var(--line)!important;
+    box-shadow:12px 0 45px #1113;}
+  body.admin-drawer-open .sidebar{transform:translateX(0)!important}
+  .sidebar .logo{display:block!important;font-size:29px!important;padding:0 8px!important;margin:3px 0 0!important}
+  .sidebar .subtitle{display:block!important;padding:8px 8px 26px!important;font-size:12px!important}
+  .sidebar .nav{display:block!important;flex:0 0 auto!important;width:100%!important;max-width:none!important;min-width:0!important;
+    min-height:49px!important;margin:4px 0!important;padding:14px 13px!important;text-align:left!important;
+    font-size:15px!important;line-height:1.35!important;border-radius:12px!important;white-space:normal!important}
+  .sidebar .bottom{display:block!important;margin-top:auto!important;padding-top:17px!important;border-top:1px solid var(--line)!important}
+  .sidebar .bottom button{display:block!important;width:100%!important;max-width:none!important;min-width:0!important;min-height:46px!important;
+    margin:8px 0 0!important;padding:12px 13px!important;text-align:left!important;font-size:14px!important;border-radius:11px!important}
+  .admin-sidebar-close{display:flex!important;position:absolute!important;right:13px!important;top:13px!important;width:40px!important;height:40px!important;
+    align-items:center!important;justify-content:center!important;border:0!important;border-radius:12px!important;background:#f0f1eb!important;font-size:20px!important}
+  .admin-scrim{display:none;position:fixed!important;inset:0!important;z-index:1200!important;background:#12150f80!important;backdrop-filter:blur(2px)}
+  body.admin-drawer-open .admin-scrim{display:block!important}
+  .main{padding-bottom:30px!important}
+}
+
 </style>
+
+<style id="shoply-final-layout-fix">
+/* Final layout cleanup */
+html,body{width:100%;max-width:100%;margin:0;overflow-x:hidden!important}
+.layout{display:flex!important;width:100%!important;max-width:100%!important;min-width:0!important;min-height:100vh}
+.sidebar{box-sizing:border-box!important;flex:0 0 250px!important;width:250px!important;height:100vh!important;max-height:100vh!important;min-height:100vh!important;position:sticky!important;top:0!important;align-self:flex-start!important;overflow:hidden!important;background:#fff!important}
+.sidebar .subtitle{display:none!important}
+.sidebar:before,.sidebar:after{content:none!important;display:none!important}
+.sidebar .bottom{margin-top:auto!important;flex:0 0 auto!important}
+.main{flex:1 1 auto!important;width:calc(100% - 250px)!important;max-width:calc(100% - 250px)!important;min-width:0!important;overflow-x:hidden!important}
+#adminGate{padding:12px!important}
+#adminGate .gate-card{width:min(300px,calc(100vw - 28px))!important;max-width:300px!important;padding:17px 18px!important;border-radius:15px!important}
+#adminGate .gate-card>div{font-size:21px!important;margin-bottom:7px!important}
+#adminGate h1{font-size:20px!important}
+#adminGate input{padding:9px 10px!important;margin:4px 0 7px!important}
+#adminGate button{padding:10px!important}
+@media(max-width:700px){
+ .layout{display:block!important;width:100%!important;max-width:100%!important;min-height:100dvh}
+ .sidebar{position:fixed!important;z-index:1201!important;top:0!important;bottom:0!important;left:0!important;right:auto!important;width:min(270px,84vw)!important;height:100dvh!important;max-height:100dvh!important;min-height:0!important;flex:0 0 auto!important;padding:17px 13px!important;overflow:hidden!important;transform:translateX(-105%);transition:transform .25s ease}
+ body.admin-drawer-open .sidebar{transform:translateX(0)!important}
+ .sidebar .logo{display:block!important;font-size:25px!important;padding:0 8px!important}
+ .sidebar .nav{display:block!important;flex:0 0 auto!important;width:100%!important;min-height:39px!important;padding:9px 11px!important;margin:2px 0!important;font-size:13px!important;text-align:left!important;white-space:nowrap!important}
+ .sidebar .bottom{display:block!important;margin-top:auto!important;padding-top:8px!important;border-top:1px solid var(--line)!important}
+ .sidebar .bottom button{display:block!important;width:100%!important;min-height:36px!important;margin:5px 0 0!important;padding:8px 10px!important;font-size:12px!important}
+ .main{display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;padding:14px 11px 24px!important}
+}
+@media(max-height:620px) and (max-width:700px){.sidebar{padding-top:9px!important;padding-bottom:9px!important}.sidebar .nav{min-height:33px!important;padding:6px 10px!important}.sidebar .bottom button{min-height:30px!important;padding:5px 9px!important}}
+</style>
+
 </head>
 <body>
+<style>
+:root{--accent:#b7f34a;--bg:#f3f5f1;--card:#fff;--ink:#171a15;--muted:#73786f;--line:#e5e9e1}
+body[data-admin-theme="glass"]{--accent:#9cdbff;--bg:#eaf4fb;--card:#f7fbff;--ink:#172b3b;--muted:#60798d;--line:#d5e7f2}
+body[data-admin-theme="soft"]{--accent:#d9c7ff;--bg:#f5f1fb;--card:#fff;--ink:#29213a;--muted:#796d8c;--line:#e7def2}
+body[data-admin-theme="current"]{--accent:#b7f34a;--bg:#f3f5f1;--card:#fff;--ink:#171a15;--muted:#73786f;--line:#e5e9e1}
+body[data-admin-theme="night"]{--accent:#a9d8ff;--bg:#151b25;--card:#202a38;--ink:#f1f5fb;--muted:#a8b5c7;--line:#344255}
+body[data-admin-theme="night"] .sidebar{background:linear-gradient(180deg,#202a38,#151b25);border-right:1px solid #344255}
+body[data-admin-theme="night"] .nav.active{background:#a9d8ff;color:#14202c}
+#adminGate{position:fixed;inset:0;z-index:5000;display:grid;place-items:center;background:linear-gradient(135deg,#e9eee3,#f8f9f6);padding:18px}#adminGate .gate-card{width:min(340px,calc(100vw - 32px));background:white;border:1px solid #e5e9e1;border-radius:18px;padding:20px 22px;box-shadow:0 18px 55px #18220f1c}#adminGate .gate-card>div{font-size:23px!important;margin-bottom:10px!important}#adminGate h1{margin:0 0 6px;font-size:23px}#adminGate p{color:#73786f;font-size:12px;line-height:1.4;margin:7px 0 10px}#adminGate label{font-size:12px;font-weight:700}#adminGate input{width:100%;padding:10px 11px;border:1px solid #ddd;border-radius:9px;margin:5px 0 9px;font-size:14px}#adminGate button{width:100%;padding:11px;border:0;border-radius:9px;background:#b7f34a;font-weight:900}
+body[data-admin-theme="glass"] .sidebar{background:linear-gradient(155deg,rgba(255,255,255,.92),rgba(222,241,255,.86));backdrop-filter:blur(22px);border-right:1px solid #cfe6f5;box-shadow:12px 0 38px rgba(46,104,145,.09)}
+body[data-admin-theme="glass"] .nav{border:1px solid transparent;border-radius:14px;margin:5px 0;transition:.2s}
+body[data-admin-theme="glass"] .nav:hover,body[data-admin-theme="glass"] .nav.active{background:linear-gradient(110deg,#c7eaff,#e9f6ff);border-color:#b8def4;color:#15364b;box-shadow:0 6px 18px #7bbde522;transform:translateX(3px)}
+body[data-admin-theme="soft"] .sidebar{background:linear-gradient(180deg,#fff,#f3edfc);border-right:1px solid #e5d9f4;box-shadow:8px 0 30px #8e75b414}
+body[data-admin-theme="soft"] .nav{border-radius:14px;margin:5px 0}body[data-admin-theme="soft"] .nav.active{background:#e9ddfb;color:#382b4b;box-shadow:0 6px 18px #8e75b422}
+body[data-admin-theme="classic"] .nav.active{background:var(--accent);color:#171a15}
+.theme-picks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:10px 0 16px}.theme-pick{min-width:0;border:1px solid var(--line);border-radius:15px;padding:10px 7px;background:var(--card);color:var(--ink);display:flex;flex-direction:column;align-items:center;gap:6px}.theme-pick.active{outline:3px solid var(--accent);border-color:var(--accent);transform:translateY(-2px)}.theme-pick b{font-size:11px}.theme-pick small{font-size:9px;color:var(--muted);text-align:center}.theme-preview{height:58px;width:100%;display:grid;place-items:center;border-radius:10px;font-size:24px}.glass-preview{background:linear-gradient(135deg,#c6eaffaa,#ffffffcc),linear-gradient(45deg,#a8d8f4,#eaf7ff);backdrop-filter:blur(8px)}.soft-preview{background:linear-gradient(135deg,#e5d7fa,#faf5ff);color:#766093}.night-preview{background:linear-gradient(135deg,#151b25,#40536d);color:#d7eaff}.current-preview{background:linear-gradient(135deg,#b7f34a,#efffd0);color:#35510c}
+@media(max-width:650px){.theme-picks{gap:7px}.theme-pick{padding:8px 5px}.theme-preview{height:48px}}
+.admin-sort-hint{font-size:12px;color:var(--muted);margin-top:8px}.layout-item{padding:13px;margin:6px 0;border:1px solid var(--line);border-radius:10px;background:var(--bg);font-weight:800;cursor:grab}
 
-<script>
-if(!sessionStorage.getItem('shoply_admin_token')) location.replace('index.html');
-else fetch('/api/admin/me',{headers:{Authorization:'Bearer '+sessionStorage.getItem('shoply_admin_token')}}).then(r=>{if(!r.ok){sessionStorage.removeItem('shoply_admin_token');location.replace('index.html')}}).catch(()=>{location.replace('index.html')});
-</script>
+/* SHOPLY sidebar fixed, no internal scrolling or horizontal overflow */
+html,body{max-width:100%;overflow-x:hidden!important}
+@media(max-width:700px){.sidebar{position:fixed!important;top:0!important;bottom:0!important;left:0!important;right:auto!important;height:100dvh!important;max-height:100dvh!important;overflow:hidden!important;overscroll-behavior:none!important;box-sizing:border-box!important}.layout,.main{max-width:100%;min-width:0;overflow-x:hidden!important}.admin-scrim{position:fixed!important;inset:0!important}}
+</style>
+<div id="adminGate"><div class="gate-card"><div style="font-size:28px;font-weight:950;letter-spacing:2px;margin-bottom:18px">SHOPLY<span style="color:#8ba925">.</span></div><h1>Admin panel</h1><p>Do‘kon boshqaruviga kirish uchun login va parolni kiriting.</p><label>Login</label><input id="gateLogin" name="shoply_user_field_20261031" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" data-lpignore="true" data-1p-ignore="true" readonly onpointerdown="this.removeAttribute('readonly')" placeholder="Loginni kiriting"><label>Parol</label><input id="gatePassword" name="shoply_pass_field_20261031" type="password" autocomplete="new-password" data-lpignore="true" data-1p-ignore="true" readonly onpointerdown="this.removeAttribute('readonly')" placeholder="Parolni kiriting"><p id="gateError" style="color:#c33"></p><button id="gateSubmit">Kirish →</button><p style="text-align:center;margin-bottom:0">SHOPLY boshqaruv tizimi</p></div></div>
+
+
+<!-- SHOPLY admin: oddiy kirish, token tekshiruvisiz -->
 
 <div class="layout">
 <div class="admin-scrim" id="adminScrim" aria-hidden="true"></div>
@@ -47,6 +228,8 @@ else fetch('/api/admin/me',{headers:{Authorization:'Bearer '+sessionStorage.getI
   <button class="nav active" data-section="dashboard">▦ Boshqaruv</button>
   <button class="nav" data-section="products">□ Mahsulotlar</button>
   <button class="nav" data-section="cart">🛒 Savat statistikasi</button>
+  <button class="nav" data-section="orders">📦 Buyurtmalar</button>
+  <button class="nav" data-section="reviews">⭐ Sharhlar</button>
   <button class="nav" data-section="banners">▧ Bannerlar</button>
   <button class="nav" data-section="settings">⚙ Sozlamalar</button>
   <div class="bottom">
@@ -74,7 +257,7 @@ else fetch('/api/admin/me',{headers:{Authorization:'Bearer '+sessionStorage.getI
   </div>
   <div class="panel" style="margin-bottom:15px">
     <h2>Ma’lumotlarni saqlash</h2>
-    <p class="muted">Mahsulotlar brauzer xotirasida saqlanadi. JSON zaxira faylini telefonga yuklab, keyin boshqa brauzerda qayta tiklashingiz mumkin.</p>
+    <p class="muted">Asosiy ma’lumotlar Supabase bulut bazasida saqlanadi. JSON zaxira fayli qo‘shimcha xavfsizlik nusxasi uchun.</p>
     <div style="display:flex;flex-wrap:wrap;gap:9px;margin-top:12px">
       <button class="primary" type="button" id="exportShoplyJson">⬇ JSON zaxira yuklab olish</button>
       <button class="secondary" type="button" id="importShoplyJsonBtn">⬆ JSON zaxirani tiklash</button>
@@ -84,56 +267,106 @@ else fetch('/api/admin/me',{headers:{Authorization:'Bearer '+sessionStorage.getI
   </div>
   <div class="panel">
     <h2>Bugungi savat faoliyati</h2>
-    <p class="muted">Statistika shu brauzerda qayd etilgan savatga qo‘shilishlarini ko‘rsatadi.</p>
+    <p class="muted">Savat statistikasi ushbu qurilmada saqlanadi.</p>
     <div class="table-wrap"><table><thead><tr><th>Mahsulot</th><th>Soni</th><th>Oxirgi qo‘shilgan vaqt</th></tr></thead><tbody id="dashboardRows"></tbody></table></div>
   </div>
 </section>
 
 <section class="section" id="products">
-  <div class="panel">
-    <div class="section-head">
-      <h2>Mahsulotlar</h2>
-      <button class="primary" id="addProduct">＋ Mahsulot qo‘shish</button>
-    </div>
-    <div class="filters">
-      <input class="field" id="search" placeholder="Mahsulot qidirish...">
-      <select class="field" id="categoryFilter"><option value="">Barcha kategoriyalar</option></select>
-    </div>
-    <div class="product-grid" id="productGrid"></div>
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Jami mahsulotlar</div><div class="stat-value" id="productCount">0</div></div>
+    <div class="stat"><div class="stat-label">O‘rtacha narx</div><div class="stat-value" id="averagePrice">0</div></div>
+    <div class="stat"><div class="stat-label">Kategoriyalar</div><div class="stat-value" id="categoryCount">0</div></div>
+    <div class="stat"><div class="stat-label">Ko‘rsatilmoqda</div><div class="stat-value" id="shownCount">0</div></div>
   </div>
+  <div class="toolbar">
+    <h2>Mahsulotlar</h2>
+    <button class="primary" id="addProduct">＋ Qo‘shish</button>
+  </div>
+  <div class="filters">
+    <input class="field search" id="search" placeholder="Mahsulot qidirish...">
+    <select class="field" id="categoryFilter" style="width:auto;min-width:165px">
+      <option value="all">Barcha kategoriyalar</option>
+      <option value="women">Ayollar</option>
+      <option value="men">Erkaklar</option>
+      <option value="kids">Bolalar</option>
+      <option value="accessories">Aksessuarlar</option>
+      <option value="souvenirs">Suvenirlar</option>
+      <option value="sub">Boshqa / maxsus</option>
+    </select>
+  </div>
+  <div class="product-grid" id="productGrid" style="margin-top:15px"></div>
 </section>
 
 <section class="section" id="cart">
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Bugungi qo‘shilishlar</div><div class="stat-value" id="cartToday">0</div></div>
+    <div class="stat"><div class="stat-label">Oxirgi 7 kun</div><div class="stat-value" id="cartWeek">0</div></div>
+    <div class="stat"><div class="stat-label">Jami qayd etilgan</div><div class="stat-value" id="cartAll">0</div></div>
+    <div class="stat"><div class="stat-label">Bugungi mahsulot turlari</div><div class="stat-value" id="cartKinds">0</div></div>
+  </div>
   <div class="panel">
-    <div class="section-head">
-      <h2>Savat statistikasi</h2>
-      <button class="secondary" id="refreshCart">Yangilash</button>
-    </div>
-    <div class="stats">
-      <div class="stat"><div class="stat-label">Jami qo‘shilishlar</div><div class="stat-value" id="cartTotal">0</div></div>
-      <div class="stat"><div class="stat-label">Bugungi qo‘shilishlar</div><div class="stat-value" id="cartToday">0</div></div>
-    </div>
-    <div class="table-wrap"><table><thead><tr><th>Mahsulot</th><th>Soni</th><th>Vaqt</th></tr></thead><tbody id="cartRows"></tbody></table></div>
+    <div class="toolbar"><h2>Kunlik statistika</h2><button class="secondary" id="refreshCart">Yangilash</button></div>
+    <div class="table-wrap"><table><thead><tr><th>Sana</th><th>Qo‘shilishlar</th><th>Turli mahsulotlar</th></tr></thead><tbody id="dailyRows"></tbody></table></div>
+  </div>
+  <div class="panel" style="margin-top:15px">
+    <h2>Bugungi mahsulotlar</h2>
+    <div class="table-wrap"><table><thead><tr><th>Mahsulot</th><th>Savatga qo‘shilgan</th><th>Oxirgi vaqt</th></tr></thead><tbody id="cartRows"></tbody></table></div>
   </div>
 </section>
 
+<section class="section" id="orders">
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Jami buyurtmalar</div><div class="stat-value" id="ordersTotal">0</div><div class="stat-note">Bazaga saqlangan</div></div>
+    <div class="stat"><div class="stat-label">Yangi</div><div class="stat-value" id="ordersNew">0</div><div class="stat-note">Ko‘rib chiqish kerak</div></div>
+    <div class="stat"><div class="stat-label">Jarayonda</div><div class="stat-value" id="ordersProcess">0</div><div class="stat-note">Tayyorlanmoqda</div></div>
+    <div class="stat"><div class="stat-label">Yetkazildi</div><div class="stat-value" id="ordersDone">0</div><div class="stat-note">Yakunlangan</div></div>
+  </div>
+  <div class="panel"><div class="toolbar"><h2>Buyurtmalar ro‘yxati</h2><button class="secondary" id="refreshOrders">↻ Yangilash</button></div><div class="table-wrap"><table><thead><tr><th>Buyurtma</th><th>Xaridor</th><th>Mahsulotlar</th><th>Jami</th><th>Sana</th><th>Holat</th></tr></thead><tbody id="ordersRows"><tr><td colspan="6">Yuklanmoqda...</td></tr></tbody></table></div></div>
+</section>
+<section class="section" id="reviews">
+  <div class="stats"><div class="stat"><div class="stat-label">Jami sharhlar</div><div class="stat-value" id="reviewsTotal">0</div><div class="stat-note">Xaridorlar fikri</div></div><div class="stat"><div class="stat-label">O‘rtacha baho</div><div class="stat-value" id="reviewsAverage">—</div><div class="stat-note">5 ballik tizim</div></div></div>
+  <div class="panel"><div class="toolbar"><h2>Mahsulot sharhlari</h2><button class="secondary" id="refreshReviews">↻ Yangilash</button></div><div id="reviewsList"></div></div>
+</section>
 <section class="section" id="banners">
   <div class="panel">
-    <div class="section-head">
-      <h2>Bannerlar</h2>
-      <button class="primary" id="addBanner">＋ Banner qo‘shish</button>
-    </div>
+    <div class="toolbar"><h2>Bannerlar</h2><button class="primary" id="addBanner">＋ Banner qo‘shish</button></div>
+    <p class="muted">Banner sarlavhasi va matni do‘konning yuqori qismida ko‘rsatiladi.</p>
     <div id="bannerList"></div>
   </div>
 </section>
 
 <section class="section" id="settings">
+  <div class="panel" style="margin-bottom:15px">
+    <h2>Promo-kodlar va chegirmalar</h2>
+    <p class="muted">Promo-kod yarating va chegirma foizini belgilang. Masalan: JAMSHID — 10%.</p>
+    <div style="display:grid;grid-template-columns:1.2fr 1fr auto;gap:10px;align-items:end">
+      <div><label class="label" for="promoCodeInput">Promo-kod</label><input class="field" id="promoCodeInput" maxlength="40" placeholder="JAMSHID"></div>
+      <div><label class="label" for="promoPercentInput">Chegirma (%)</label><input class="field" id="promoPercentInput" type="number" min="1" max="100" value="10"></div>
+      <button class="primary" id="createPromoBtn" type="button">＋ Yaratish</button>
+    </div>
+    <div id="promoAdminStatus" class="muted" role="status" style="margin:8px 0"></div>
+    <div class="table-wrap"><table><thead><tr><th>Promo-kod</th><th>Chegirma</th><th>Holat</th><th>Amal</th></tr></thead><tbody id="promoRows"><tr><td colspan="4">Promo-kodlar yo‘q</td></tr></tbody></table></div>
+  </div>
   <div class="panel">
-    <h2>Sozlamalar</h2>
-    <label class="label" for="accentColor">Asosiy rang</label>
-    <input type="color" class="color" id="accentColor">
-    <button class="primary" id="saveSettings">Saqlash</button>
-    <div id="profileInfo"></div>
+    <h2>Sayt dizayni va joylashuvi</h2>
+    <p class="muted">Uchta tayyor ko‘rinishdan birini tanlang. Menyu tugmalarini sudrab joyini almashtirishingiz mumkin.</p>
+    <label class="label">Sayt dizayni — 3 ta yangi dizayn</label><select class="field hidden" id="siteTheme"><option value="glass">1. GLASS</option><option value="soft">2. SOFT</option><option value="night">3. NIGHT</option><option value="current">4. Hozirgi dizayn</option></select><div class="theme-picks" id="themePicks"><button type="button" class="theme-pick" data-theme-pick="glass"><span class="theme-preview glass-preview">◈</span><b>1. GLASS</b><small>Shishali / oynadek</small></button><button type="button" class="theme-pick" data-theme-pick="soft"><span class="theme-preview soft-preview">✦</span><b>2. SOFT</b><small>Yumshoq pastel</small></button><button type="button" class="theme-pick" data-theme-pick="night"><span class="theme-preview night-preview">☾</span><b>3. NIGHT</b><small>To‘q zamonaviy</small></button></div><button type="button" class="secondary" id="currentDesign" style="width:100%;margin:4px 0 14px">4. Hozirgi dizaynni qaytarish</button>
+    <label class="label" for="accentColor">Asosiy rangni o‘zingiz tanlang</label><input class="color" type="color" id="accentColor" value="#b7f34a">
+    <button class="primary" id="saveColor" style="margin-top:12px">Dizaynni saqlash</button>
+    <p class="admin-sort-hint">Menyu elementlarini sichqoncha yoki barmoq bilan bosib ushlab, boshqa joyga sudrang.</p>
+    <div style="margin-top:18px"><b>Bosh sahifa bloklari tartibi</b><p class="muted">Elementlarni sudrab, sayt bosh sahifasidagi joyini o‘zgartiring.</p><div id="homeLayoutEditor" class="panel" style="padding:10px;margin-top:8px"><div class="layout-item" draggable="true" data-layout="heroBanner">1. Katta banner</div><div class="layout-item" draggable="true" data-layout="categories">2. Kategoriyalar</div><div class="layout-item" draggable="true" data-layout="productSection">3. Mahsulotlar</div></div><button class="secondary" id="saveHomeLayout" style="margin-top:10px">Joylashuvni saqlash</button></div><button class="secondary" id="resetSiteDesign" style="margin-top:10px">↺ Sayt ko‘rinishini boshidan tiklash</button>
+  </div>
+  <div class="panel" style="margin-top:15px"><h2>Admin login va parol</h2><label class="label">Yangi login</label><input class="field" id="newAdminLogin" placeholder="Yangi login"><label class="label">Yangi parol</label><input class="field" id="newAdminPassword" type="password" placeholder="Yangi parol"><button class="primary" id="saveAdminCredentials">Login va parolni o‘zgartirish</button><p class="muted">Login va parolni bu yerda o‘zingiz belgilashingiz mumkin.</p></div>
+  <div class="panel" style="margin-top:15px">
+    <h2>Admin profili</h2>
+    <div class="profile-avatar" id="avatar">J</div>
+    <label class="label" for="profileName">Ism</label>
+    <input class="field" id="profileName" maxlength="60" placeholder="Admin ismi">
+    <label class="label" for="profileEmail">Email (ixtiyoriy)</label>
+    <input class="field" id="profileEmail" type="email" maxlength="120" placeholder="admin@example.com">
+    <button class="primary" id="saveProfile" style="margin-top:14px">Profilni saqlash</button>
+    <p class="muted">Admin profili ushbu qurilmada saqlanadi.</p>
   </div>
 </section>
 </main>
@@ -141,17 +374,39 @@ else fetch('/api/admin/me',{headers:{Authorization:'Bearer '+sessionStorage.getI
 
 <div class="modal" id="productModal">
 <form class="modal-card" id="productForm">
-  <h2 id="productModalTitle">Mahsulot qo‘shish</h2>
+  <h2 id="formTitle">Mahsulot qo‘shish</h2>
+  <div class="notice">Saqlangan mahsulotlar do‘kon bilan bir xil ma’lumotlardan foydalanadi.</div>
   <label class="label" for="pName">Mahsulot nomi *</label>
   <input class="field" id="pName" required maxlength="120">
   <label class="label" for="pCategory">Kategoriya *</label>
-  <input class="field" id="pCategory" required maxlength="80">
-  <label class="label" for="pPrice">Narxi *</label>
+  <select class="field" id="pCategory" required>
+    <option value="women">Ayollar</option>
+    <option value="men">Erkaklar</option>
+    <option value="kids">Bolalar</option>
+    <option value="accessories">Aksessuarlar</option>
+    <option value="souvenirs">Suvenirlar</option>
+    <option value="sub">Boshqa / maxsus</option>
+  </select>
+  <label class="label" for="pSub">Mahsulot turi</label>
+  <input class="field" id="pSub" maxlength="80" placeholder="Masalan: Futbolka">
+  <label class="label" for="pPrice">Narxi (so‘m) *</label>
   <input class="field" id="pPrice" type="number" min="0" required>
-  <label class="label" for="pOldPrice">Eski narxi</label>
-  <input class="field" id="pOldPrice" type="number" min="0">
-  <label class="label" for="pImage">Rasm URL</label>
-  <input class="field" id="pImage" type="url">
+  <label class="label" for="pOld">Eski narxi (ixtiyoriy)</label>
+  <input class="field" id="pOld" type="number" min="0">
+  <label class="label" for="pRating">Reyting</label>
+  <input class="field" id="pRating" type="number" min="0" max="5" step="0.1" value="4.8">
+  <label class="label" for="pImage">Rasm URL (ixtiyoriy)</label>
+  <input class="field" id="pImage" type="url" placeholder="https://...">
+  <label class="label" for="pImages">Qo‘shimcha rasmlar (3 tagacha URL, vergul bilan)</label><textarea class="field" id="pImages" rows="2" placeholder="https://rasm2.jpg, https://rasm3.jpg"></textarea><p class="muted">Jami 4 tagacha rasm: asosiy rasm + 3 ta qo‘shimcha.</p>
+  <label class="label" for="pImageFile">Yoki telefon/kompyuterdan rasm tanlang</label>
+  <input class="field" id="pImageFile" type="file" accept="image/*">
+  <div id="pImagePreview" style="display:none;margin:-5px 0 14px"><img alt="Rasm ko‘rinishi" style="max-width:100%;max-height:180px;object-fit:contain;border-radius:10px"></div>
+  <label class="label" for="pSizes">Razmerlar (vergul bilan)</label>
+  <input class="field" id="pSizes" maxlength="180" placeholder="Masalan: S, M, L, XL yoki 38, 39, 40">
+  <label class="label" for="pColors">Ranglar (vergul bilan)</label>
+  <input class="field" id="pColors" maxlength="180" placeholder="Masalan: Qora, Oq, Ko‘k">
+  <label class="label" for="pBadge">Yorliq</label>
+  <input class="field" id="pBadge" maxlength="30" placeholder="YANGI yoki CHEGIRMA">
   <label class="label" for="pDescription">Tavsif</label>
   <textarea class="field" id="pDescription" maxlength="500" rows="3"></textarea>
   <div class="form-actions"><button class="secondary" type="button" id="cancelProduct">Bekor qilish</button><button class="primary" type="submit">Saqlash</button></div>
@@ -159,24 +414,24 @@ else fetch('/api/admin/me',{headers:{Authorization:'Bearer '+sessionStorage.getI
 </div>
 
 <div class="modal" id="bannerModal">
-<form class="modal-card" id="bannerForm">
+<form class="modal-card" id="bannerForm" autocomplete="off">
   <h2>Banner qo‘shish</h2>
   <label class="label" for="bTitle">Sarlavha *</label><input class="field" id="bTitle" required maxlength="100">
   <label class="label" for="bText">Matn</label><textarea class="field" id="bText" maxlength="250"></textarea>
   <label class="label" for="bEyebrow">Kichik sarlavha</label><input class="field" id="bEyebrow" maxlength="70" value="SHOPLY COLLECTION">
   <label class="label" for="bEmoji">Belgi</label><input class="field" id="bEmoji" maxlength="8" value="✳">
-  <label class="label" for="bColor">Banner rangi</label><input class="color" id="bColor" type="color" value="#b7f34a">
+  <label class="label" for="bImageFile">Banner rasmi (telefon/kompyuterdan)</label><input class="field" id="bImageFile" type="file" accept="image/*"><label class="label" for="bImageUrl">Yoki rasm URL manzili</label><input class="field" id="bImageUrl" type="url" placeholder="https://example.com/banner.jpg"><div id="bImagePreview" style="display:none;margin:8px 0"><img alt="Banner preview" style="width:100%;max-height:150px;object-fit:cover;border-radius:12px"></div><label class="label" for="bColor">Banner rangi</label><input class="color" id="bColor" type="color" value="#b7f34a">
   <div class="form-actions"><button class="secondary" type="button" id="cancelBanner">Bekor qilish</button><button class="primary" type="submit">Saqlash</button></div>
 </form>
 </div>
 
+<script src="offline.js"></script>
 <script>
 (function(){
   const sharedKeys = new Set([
     'mono_store_products_v2','mono_store_settings_v2','mono_store_slides_v2',
-    'mono_store_cart_events_v1','shoply_reviews_v1','shoply_orders_v1'
+    'mono_store_cart_events_v1','shoply_reviews_v1','shoply_orders_v1','mono_store_admin_profile_v1','shoply_site_builder_v1'
   ]);
-  const authHeaders = () => ({Authorization:'Bearer '+(sessionStorage.getItem('shoply_admin_token')||'')});
   const nativeGet = Storage.prototype.getItem;
   const nativeSet = Storage.prototype.setItem;
   const nativeRemove = Storage.prototype.removeItem;
@@ -192,11 +447,11 @@ else fetch('/api/admin/me',{headers:{Authorization:'Bearer '+sessionStorage.getI
     lastSent.set(key, serialized);
     const previous = queues.get(key) || Promise.resolve();
     const task = previous.catch(()=>{}).then(async()=>{
-      if(lastSent.get(key) !== serialized) return true;
+      if(lastSent.get(key) !== serialized) return true; // newer value will be sent by its queued task
       pending.add(key);
       try{
         const response = await fetch('/api/state/' + encodeURIComponent(key), {
-          method:'PUT', headers:{'Content-Type':'application/json',...authHeaders()}, body:JSON.stringify({value}), cache:'no-store'
+          method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({value}), cache:'no-store'
         });
         if(!response.ok) throw new Error('HTTP ' + response.status);
         return true;
@@ -211,10 +466,11 @@ else fetch('/api/admin/me',{headers:{Authorization:'Bearer '+sessionStorage.getI
   Storage.prototype.setItem = function(key, value){
     const k = String(key);
     let localError = null;
-    try { nativeSet.call(this, key, value); } catch(error) { localError = error; }
+    try { nativeSet.call(this, key, value); if(this===localStorage) window.shoplyBackupWrite?.(key,String(value)); } catch(error) { localError = error; }
     if(this === localStorage && sharedKeys.has(k)){
       try { void push(k, JSON.parse(String(value))); }
       catch(error) { console.error('SHOPLY: ma’lumotni tayyorlashda xato', error); }
+      // Keep the app running if browser storage is full; the server remains the source of truth.
       if(localError) console.warn('SHOPLY: brauzer xotirasi to‘ldi; serverga saqlash davom etadi.');
       return;
     }
@@ -223,15 +479,15 @@ else fetch('/api/admin/me',{headers:{Authorization:'Bearer '+sessionStorage.getI
 
   Storage.prototype.removeItem = function(key){
     nativeRemove.call(this, key);
-    const k = String(key);
+    const k = String(key); window.shoplyBackupDelete?.(k);
     if(this === localStorage && sharedKeys.has(k)){
-      fetch('/api/state/' + encodeURIComponent(k), {method:'DELETE',headers:authHeaders()}).catch(()=>{});
+      fetch('/api/state/' + encodeURIComponent(k), {method:'DELETE'}).catch(()=>{});
     }
   };
 
   window.shoplySyncReady = (async()=>{
     try{
-      const response = await fetch('/api/admin/state', {cache:'no-store',headers:authHeaders()});
+      const response = await fetch('/api/admin/state', {cache:'no-store'} );
       if(!response.ok) throw new Error('HTTP ' + response.status);
       const state = await response.json();
       for(const [key,value] of Object.entries(state)){
@@ -248,191 +504,335 @@ else fetch('/api/admin/me',{headers:{Authorization:'Bearer '+sessionStorage.getI
 
   setInterval(async()=>{
     try{
-      const response = await fetch('/api/admin/state', {cache:'no-store',headers:authHeaders()});
+      const response = await fetch('/api/admin/state', {cache:'no-store'} );
       if(!response.ok) return;
       const state = await response.json();
       for(const [key,value] of Object.entries(state)){
         if(!sharedKeys.has(key) || pending.has(key)) continue;
-        const raw = JSON.stringify(value);
-        if(nativeGet.call(localStorage,key)!==raw){
-          nativeSet.call(localStorage,key,raw);
-          window.dispatchEvent(new StorageEvent('storage',{key,newValue:raw}));
+        const next = JSON.stringify(value);
+        if(nativeGet.call(localStorage,key) !== next){
+          try { nativeSet.call(localStorage,key,next); }
+          catch(error) { console.warn('SHOPLY: localStorage yangilanmadi:',key); }
+          dispatchEvent(new StorageEvent('storage',{key,newValue:next,storageArea:localStorage}));
         }
       }
-    }catch(error){console.error('SHOPLY sync error:',error)}
-  },5000);
+    }catch(error){}
+  },3000);
 })();
-
-const $ = id => document.getElementById(id);
+</script>
+<script>
+(async function bootAdmin(){
+ await window.shoplySyncReady;
+'use strict';
 const PRODUCT_KEY='mono_store_products_v2';
-const SETTINGS_KEY='mono_store_settings_v2';
 const SLIDE_KEY='mono_store_slides_v2';
+const SETTINGS_KEY='mono_store_settings_v2';
 const CART_EVENT_KEY='mono_store_cart_events_v1';
-let products=[];
-let banners=[];
-let cartEvents=[];
-let editingProduct=null;
+const PROFILE_KEY='mono_store_admin_profile_v1';
+const $=id=>document.getElementById(id);
+const adminMenuToggle=$('adminMenuToggle'),adminScrim=$('adminScrim'),adminSidebarClose=$('adminSidebarClose');
+function setAdminDrawer(open){document.body.classList.toggle('admin-drawer-open',open);if(adminMenuToggle)adminMenuToggle.setAttribute('aria-expanded',String(open))}
+if(adminMenuToggle)adminMenuToggle.addEventListener('click',()=>setAdminDrawer(!document.body.classList.contains('admin-drawer-open')));
+if(adminScrim)adminScrim.addEventListener('click',()=>setAdminDrawer(false));if(adminSidebarClose)adminSidebarClose.addEventListener('click',()=>setAdminDrawer(false));
+document.querySelectorAll('.sidebar .nav').forEach(b=>b.addEventListener('click',()=>setAdminDrawer(false)));document.addEventListener('keydown',e=>{if(e.key==='Escape')setAdminDrawer(false)});
 
-function read(key,fallback){
- try{return JSON.parse(localStorage.getItem(key))??fallback}catch(e){return fallback}
+
+const categories={women:'Ayollar',men:'Erkaklar',kids:'Bolalar',accessories:'Aksessuarlar',souvenirs:'Suvenirlar',sub:'Boshqa / maxsus'};
+
+function readArray(key,fallback=[]){
+ try{
+  const raw=localStorage.getItem(key);
+  if(raw===null){localStorage.setItem(key,JSON.stringify(fallback));return fallback}
+  const value=JSON.parse(raw);
+  return Array.isArray(value)?value:fallback;
+ }catch(e){return fallback}
+}
+function readObject(key,fallback={}){
+ try{
+  const value=JSON.parse(localStorage.getItem(key)||'{}');
+  return value&&typeof value==='object'&&!Array.isArray(value)?{...fallback,...value}:fallback;
+ }catch(e){return fallback}
 }
 function save(key,value){
- try{
-  localStorage.setItem(key,JSON.stringify(value));
-  if(window.shoplyPush)window.shoplyPush(key,value);
-  return true;
- }catch(e){console.error(e);return false}
+ try{localStorage.setItem(key,JSON.stringify(value));return true}
+ catch(e){alert('Saqlashda xato yuz berdi. Brauzer xotirasini tekshiring.');return false}
+}
+
+// Promo-kodlar: do‘kon sahifasi bilan umumiy brauzer xotirasida saqlanadi.
+const PROMO_KEY='shoply_promo_codes_v1';
+function getPromos(){const v=readArray(PROMO_KEY,[]);return v}
+function renderPromos(){const body=$('promoRows');if(!body)return;const list=getPromos();body.innerHTML=list.length?list.map((p,i)=>`<tr><td><b>${esc(p.code)}</b></td><td>${Number(p.percent)||0}%</td><td>${p.active===false?'O‘chirilgan':'Faol'}</td><td><button class="secondary" data-promo-toggle="${i}">${p.active===false?'Yoqish':'O‘chirish'}</button> <button class="danger" data-promo-delete="${i}">O‘chirish</button></td></tr>`).join(''):'<tr><td colspan="4">Hozircha promo-kod yaratilmagan.</td></tr>'}
+if($('createPromoBtn'))$('createPromoBtn').onclick=()=>{const code=$('promoCodeInput').value.trim().toUpperCase().replace(/\s+/g,'');const percent=Number($('promoPercentInput').value);if(!/^[A-Z0-9_-]{3,40}$/.test(code)){ $('promoAdminStatus').textContent='Promo-kod 3–40 ta belgi: harf, raqam, _ yoki - bo‘lishi kerak.';return}if(!Number.isFinite(percent)||percent<1||percent>100){$('promoAdminStatus').textContent='Chegirma 1 dan 100 gacha bo‘lishi kerak.';return}const list=getPromos();const old=list.findIndex(x=>String(x.code).toUpperCase()===code);const item={code,percent,active:true,updatedAt:new Date().toISOString()};if(old>=0)list[old]=item;else list.push(item);if(save(PROMO_KEY,list)){ $('promoCodeInput').value='';$('promoAdminStatus').textContent=`${code} — ${percent}% promo-kod saqlandi.`;renderPromos()}};
+if($('promoRows'))$('promoRows').addEventListener('click',e=>{const t=e.target.closest('[data-promo-toggle]'),d=e.target.closest('[data-promo-delete]');const list=getPromos();if(t){const i=Number(t.dataset.promoToggle);list[i].active=list[i].active===false;save(PROMO_KEY,list);renderPromos()}if(d){const i=Number(d.dataset.promoDelete);if(confirm(`${list[i].code} promo-kodi o‘chirilsinmi?`)){list.splice(i,1);save(PROMO_KEY,list);renderPromos()}}});
+renderPromos();
+
+function esc(v){
+ return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function sumMoney(n){return new Intl.NumberFormat('uz-UZ').format(Number(n)||0)+' so‘m'}
+function todayKey(date=new Date()){
+ return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
+}
+function formatTime(v){
+ const d=new Date(v);
+ return Number.isNaN(d.getTime())?'—':d.toLocaleTimeString('uz-UZ',{hour:'2-digit',minute:'2-digit'});
+}
+
+let products=readArray(PRODUCT_KEY,[]).map(normalizeProduct);
+let slides=readArray(SLIDE_KEY,[]);
+let settings=readObject(SETTINGS_KEY,{accent:'#b7f34a'});
+let profile=readObject(PROFILE_KEY,{name:'',email:''});
+let events=readArray(CART_EVENT_KEY,[]);
+let editingId=null;
+
+function toCategoryKey(p){
+ const raw=p.category||p.cat||'';
+ const old={'Ayollar':'women','Erkaklar':'men','Bolalar':'kids','Aksessuarlar':'accessories','Suvenirlar':'souvenirs','Boshqa / maxsus':'sub'};
+ if(categories[raw])return raw;
+ return old[raw]||'sub';
+}
+function toCategoryLabel(key){return categories[key]||'Boshqa / maxsus'}
+function normalizeProduct(p){
+ const category=toCategoryKey(p);
+ return {...p,category,cat:toCategoryLabel(category),sub:p.sub||'Tanlangan'};
 }
 function refreshData(){
- products=read(PRODUCT_KEY,[]);
- banners=read(SLIDE_KEY,[]);
- cartEvents=read(CART_EVENT_KEY,[]);
+ products=readArray(PRODUCT_KEY,[]).map(normalizeProduct);
+ slides=readArray(SLIDE_KEY,[]);
+ settings=readObject(SETTINGS_KEY,{accent:'#b7f34a'});
+ events=readArray(CART_EVENT_KEY,[]);
 }
-function escapeHTML(value){
- return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-function money(value){
- return Number(value||0).toLocaleString('uz-UZ')+' so‘m';
-}
-function todayKey(){
- return new Date().toISOString().slice(0,10);
+function updateStats(){
+ const cats=new Set(products.map(p=>toCategoryKey(p)));
+ const today=events.filter(e=>e.day===todayKey());
+ $('statProducts').textContent=products.length;
+ $('statCategories').textContent=cats.size;
+ $('statToday').textContent=today.reduce((n,e)=>n+(Number(e.qty)||1),0);
+ $('statUnique').textContent=new Set(today.map(e=>String(e.productId))).size;
+ $('productCount').textContent=products.length;
+ $('categoryCount').textContent=cats.size;
+ $('averagePrice').textContent=sumMoney(products.length?Math.round(products.reduce((n,p)=>n+(Number(p.price)||0),0)/products.length):0);
 }
 function renderProducts(){
  refreshData();
- $('statProducts').textContent=products.length;
- const categories=[...new Set(products.map(p=>p.category).filter(Boolean))];
- $('statCategories').textContent=categories.length;
- const filter=$('categoryFilter');
- const selected=filter.value;
- filter.innerHTML='<option value="">Barcha kategoriyalar</option>'+categories.map(c=>`<option value="${escapeHTML(c)}">${escapeHTML(c)}</option>`).join('');
- filter.value=selected;
- const q=$('search').value.toLowerCase();
- const shown=products.filter(p=>(!q||String(p.name).toLowerCase().includes(q))&&(!filter.value||p.category===filter.value));
- $('productGrid').innerHTML=shown.map((p,i)=>`
- <div class="product-card">
-  <img class="product-image" src="${escapeHTML(p.image||'')}" alt="" onerror="this.style.display='none'">
-  <div class="product-info">
-   <h3>${escapeHTML(p.name)}</h3>
-   <div class="muted">${escapeHTML(p.category)}</div>
-   <strong>${money(p.price)}</strong>
-   <div class="product-actions">
-    <button class="secondary" onclick="editProduct('${String(p.id??'').replace(/'/g,'')}')">Tahrirlash</button>
-    <button class="danger" onclick="deleteProduct('${String(p.id??'').replace(/'/g,'')}')">O‘chirish</button>
-   </div>
+ const q=$('search').value.trim().toLowerCase();
+ const cat=$('categoryFilter').value;
+ const shown=products.filter(p=>{
+  const text=(String(p.name||'')+' '+String(p.sub||'')+' '+String(p.description||'')).toLowerCase();
+  return text.includes(q)&&(cat==='all'||toCategoryKey(p)===cat);
+ });
+ $('shownCount').textContent=shown.length;
+ updateStats();
+ if(!shown.length){
+  $('productGrid').innerHTML='<div class="empty">Mahsulot topilmadi. Boshqa kategoriya yoki qidiruvni tanlang.</div>';
+  return;
+ }
+ $('productGrid').innerHTML=shown.map(p=>`
+ <article class="product-card">
+  <div class="product-image">
+   ${p.image?`<img src="${esc(p.image)}" alt="${esc(p.name)}" onerror="this.style.display='none'">`:'<div style="display:grid;place-items:center;height:100%;font-size:45px">📦</div>'}
+   ${p.badge?`<span class="badge">${esc(p.badge)}</span>`:''}
   </div>
- </div>`).join('')||'<p class="muted">Mahsulot topilmadi.</p>';
+  <div class="product-body">
+   <div class="category">${esc(categories[p.category]||p.category||'Kategoriya yo‘q')} · ${esc(p.sub||'Umumiy')}</div>
+   <h3 class="product-name">${esc(p.name)}</h3>
+   <p class="description">${esc(p.description||'Tavsif yo‘q')}</p><p class="description">Razmer: ${esc((Array.isArray(p.sizes)?p.sizes:[]).join(', ')||'—')}<br>Rang: ${esc((Array.isArray(p.colors)?p.colors:[]).join(', ')||'—')}</p>
+   <div class="price">${sumMoney(p.price)}</div>
+   ${p.oldPrice?`<div class="old-price">${sumMoney(p.oldPrice)}</div>`:''}
+   <div class="actions"><button class="edit" data-edit="${esc(p.id)}">✎ Tahrirlash</button><button class="danger" data-delete="${esc(p.id)}">🗑 O‘chirish</button></div>
+  </div>
+ </article>`).join('');
+ $('productGrid').querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openProduct(b.dataset.edit));
+ $('productGrid').querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>deleteProduct(b.dataset.delete));
 }
-function openProduct(product=null){
- editingProduct=product;
- $('productModalTitle').textContent=product?'Mahsulotni tahrirlash':'Mahsulot qo‘shish';
- $('pName').value=product?.name||'';
- $('pCategory').value=product?.category||'';
- $('pPrice').value=product?.price||'';
- $('pOldPrice').value=product?.oldPrice||'';
- $('pImage').value=product?.image||'';
- $('pDescription').value=product?.description||'';
+let uploadedProductImage='';
+$('pImageFile').addEventListener('change',async e=>{
+ const file=e.target.files&&e.target.files[0];if(!file)return;
+ if(!file.type.startsWith('image/')){alert('Rasm faylini tanlang.');e.target.value='';return}
+ if(file.size>15*1024*1024){alert('Rasm 15 MB dan kichik bo‘lsin.');e.target.value='';return}
+ try{uploadedProductImage=await compressImage(file);$('pImage').value='';const box=$('pImagePreview');box.style.display='block';box.querySelector('img').src=uploadedProductImage}
+ catch(err){alert('Rasmni o‘qib bo‘lmadi. Boshqa rasm tanlang.');}
+});
+function compressImage(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onerror=reject;reader.onload=()=>{const img=new Image();img.onerror=reject;img.onload=()=>{const max=800,scale=Math.min(1,max/Math.max(img.width,img.height)),canvas=document.createElement('canvas');canvas.width=Math.round(img.width*scale);canvas.height=Math.round(img.height*scale);canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);resolve(canvas.toDataURL('image/jpeg',.62))};img.src=reader.result};reader.readAsDataURL(file)})}
+function newId(){return Date.now()+Math.floor(Math.random()*10000)}
+function openProduct(id=null){
+ refreshData();
+ editingId=id;
+ $('productForm').reset();uploadedProductImage='';$('pImagePreview').style.display='none';
+ $('formTitle').textContent=id===null?'Mahsulot qo‘shish':'Mahsulotni tahrirlash';
+ const p=id===null?null:products.find(x=>String(x.id)===String(id));
+ if(id!==null&&!p){alert('Mahsulot topilmadi.');return}
+ if(p){
+  $('pName').value=p.name||'';
+  $('pCategory').value=toCategoryKey(p);
+  $('pSub').value=p.sub||'';
+  $('pPrice').value=p.price??'';
+  $('pOld').value=p.oldPrice??'';
+  $('pRating').value=p.rating??4.8;
+  $('pImage').value=p.image||'';$('pImages').value=(Array.isArray(p.images)?p.images.slice(1,4):[]).join(', ');
+  $('pBadge').value=p.badge||'';
+  $('pDescription').value=p.description||'';
+  $('pSizes').value=Array.isArray(p.sizes)?p.sizes.join(', '):(p.sizes||'');
+  $('pColors').value=Array.isArray(p.colors)?p.colors.join(', '):(p.colors||'');
+  if(p.image&&p.image.startsWith('data:image/')){uploadedProductImage=p.image;$('pImagePreview').style.display='block';$('pImagePreview').querySelector('img').src=p.image}
+ }else{
+  $('pCategory').value='women';
+  $('pRating').value='4.8';
+ }
  $('productModal').classList.add('show');
 }
-function closeProduct(){
- $('productModal').classList.remove('show');
- $('productForm').reset();
- editingProduct=null;
-}
-window.editProduct=id=>{
- const p=products.find(x=>String(x.id)===String(id));
- if(p)openProduct(p);
-};
-window.deleteProduct=id=>{
- if(!confirm('Mahsulotni o‘chirmoqchimisiz?'))return;
- products=products.filter(p=>String(p.id)!==String(id));
- save(PRODUCT_KEY,products);
- renderProducts();
-};
-$('productForm').onsubmit=e=>{
+function closeProduct(){$('productModal').classList.remove('show');editingId=null}
+$('productForm').addEventListener('submit',async e=>{
  e.preventDefault();
- const product={
-  id:editingProduct?.id||Date.now().toString(),
+ refreshData();
+ const item={
+  id:editingId===null?newId():editingId,
   name:$('pName').value.trim(),
-  category:$('pCategory').value.trim(),
+  category:$('pCategory').value,
+  cat:toCategoryLabel($('pCategory').value),
+  sub:$('pSub').value.trim()||'Tanlangan',
   price:Number($('pPrice').value),
-  oldPrice:Number($('pOldPrice').value||0),
-  image:$('pImage').value.trim(),
+  oldPrice:Number($('pOld').value)||0,
+  rating:String($('pRating').value||4.8),
+  image:uploadedProductImage||$('pImage').value.trim()||(products.find(x=>String(x.id)===String(editingId))||{}).image||'',
+  images:[uploadedProductImage||$('pImage').value.trim()||(products.find(x=>String(x.id)===String(editingId))||{}).image||'',...$('pImages').value.split(',').map(x=>x.trim()).filter(Boolean)].filter(Boolean).slice(0,4),
+  sizes:$('pSizes').value.split(',').map(x=>x.trim()).filter(Boolean),
+  colors:$('pColors').value.split(',').map(x=>x.trim()).filter(Boolean),
+  badge:$('pBadge').value.trim(),
   description:$('pDescription').value.trim()
  };
- if(editingProduct)products=products.map(p=>String(p.id)===String(editingProduct.id)?product:p);
- else products.unshift(product);
- save(PRODUCT_KEY,products);
- closeProduct();
- renderProducts();
-};
+ if(!item.name||!item.image||!Number.isFinite(item.price)||item.price<0){
+  alert('Mahsulot nomi, rasm tanlovi va narxni to‘g‘ri kiriting.');return;
+ }
+ const isNew=editingId===null;
+ const next=isNew?[...products,item]:products.map(p=>String(p.id)===String(editingId)?item:p);
+ // Ma’lumot qurilma xotirasiga va IndexedDB zaxira nusxasiga saqlanadi.
+ if(save(PRODUCT_KEY,next)){
+  products=next;
+  closeProduct();
+  renderProducts();
+  window.shoplyBackupWrite?.(PRODUCT_KEY,JSON.stringify(next));
+  alert(isNew?'Mahsulot qurilmaga saqlandi. Muhim: vaqti-vaqti bilan JSON zaxira yuklab oling.':'Mahsulot yangilandi va zaxira nusxasi yaratildi.');
+ }
+});
+function deleteProduct(id){
+ refreshData();
+ const p=products.find(x=>String(x.id)===String(id));
+ if(!p)return;
+ if(!confirm('“'+p.name+'” mahsulotini o‘chirmoqchimisiz?'))return;
+ const next=products.filter(x=>String(x.id)!==String(id));
+ if(save(PRODUCT_KEY,next)){products=next;renderProducts()}
+}
 
 function renderCart(){
  refreshData();
- const today=todayKey();
- const todays=cartEvents.filter(e=>String(e.time||e.createdAt||'').slice(0,10)===today);
- $('cartTotal').textContent=cartEvents.length;
- $('cartToday').textContent=todays.length;
- $('statToday').textContent=todays.length;
- $('statUnique').textContent=new Set(todays.map(e=>e.productId||e.productName)).size;
- const rows=cartEvents.slice().reverse().map(e=>`
- <tr><td>${escapeHTML(e.productName||e.name||'Mahsulot')}</td>
- <td>${escapeHTML(e.quantity||1)}</td>
- <td>${escapeHTML(e.time||e.createdAt||'')}</td></tr>`).join('');
- $('cartRows').innerHTML=rows||'<tr><td colspan="3">Hozircha ma’lumot yo‘q</td></tr>';
- $('dashboardRows').innerHTML=rows||'<tr><td colspan="3">Hozircha ma’lumot yo‘q</td></tr>';
+ const now=new Date(),today=todayKey(now);
+ const todayEvents=events.filter(e=>e.day===today);
+ const weekStart=new Date(now);
+ weekStart.setDate(now.getDate()-6);
+ weekStart.setHours(0,0,0,0);
+ const weekEvents=events.filter(e=>new Date(e.timestamp)>=weekStart);
+ $('cartToday').textContent=todayEvents.reduce((n,e)=>n+(Number(e.qty)||1),0);
+ $('cartWeek').textContent=weekEvents.reduce((n,e)=>n+(Number(e.qty)||1),0);
+ $('cartAll').textContent=events.reduce((n,e)=>n+(Number(e.qty)||1),0);
+ $('cartKinds').textContent=new Set(todayEvents.map(e=>String(e.productId))).size;
+
+ const grouped={};
+ todayEvents.forEach(e=>{
+  const id=String(e.productId);
+  if(!grouped[id])grouped[id]={name:e.name||'Mahsulot',qty:0,last:e.timestamp};
+  grouped[id].qty+=Number(e.qty)||1;
+  if(new Date(e.timestamp)>new Date(grouped[id].last))grouped[id].last=e.timestamp;
+ });
+ const rows=Object.values(grouped).sort((a,b)=>b.qty-a.qty);
+ $('cartRows').innerHTML=rows.length?rows.map(r=>`<tr><td>${esc(r.name)}</td><td>${r.qty}</td><td>${formatTime(r.last)}</td></tr>`).join(''):'<tr><td colspan="3">Bugun hali savatga qo‘shilish qayd etilmagan.</td></tr>';
+ $('dashboardRows').innerHTML=rows.length?rows.map(r=>`<tr><td>${esc(r.name)}</td><td>${r.qty}</td><td>${formatTime(r.last)}</td></tr>`).join(''):'<tr><td colspan="3">Bugun hali savatga qo‘shilish qayd etilmagan.</td></tr>';
+
+ const days={};
+ events.forEach(e=>{
+  if(!days[e.day])days[e.day]={qty:0,ids:new Set()};
+  days[e.day].qty+=Number(e.qty)||1;
+  days[e.day].ids.add(String(e.productId));
+ });
+ const daily=Object.entries(days).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,14);
+ $('dailyRows').innerHTML=daily.length?daily.map(([day,d])=>`<tr><td>${esc(day)}</td><td>${d.qty}</td><td>${d.ids.size}</td></tr>`).join(''):'<tr><td colspan="3">Hali statistika yo‘q.</td></tr>';
+ updateStats();
 }
+
 function renderBanners(){
  refreshData();
- $('bannerList').innerHTML=banners.map((b,i)=>`
- <div class="banner-row">
-  <div><strong>${escapeHTML(b.title||'Banner')}</strong><p>${escapeHTML(b.text||'')}</p></div>
-  <button class="danger" onclick="deleteBanner(${i})">O‘chirish</button>
- </div>`).join('')||'<p class="muted">Bannerlar yo‘q.</p>';
-}
-window.deleteBanner=i=>{
- if(!confirm('Bannerni o‘chirmoqchimisiz?'))return;
- banners.splice(i,1);
- save(SLIDE_KEY,banners);
- renderBanners();
-};
-$('bannerForm').onsubmit=e=>{
- e.preventDefault();
- banners.push({
-  id:Date.now().toString(),
-  title:$('bTitle').value.trim(),
-  text:$('bText').value.trim(),
-  eyebrow:$('bEyebrow').value.trim(),
-  emoji:$('bEmoji').value.trim(),
-  color:$('bColor').value
+ $('bannerList').innerHTML=slides.length?slides.map((s,i)=>`
+ <div style="border-bottom:1px solid var(--line);padding:14px 0">
+  <strong>${esc(s.emoji||'✳')} ${esc(s.title||'Banner')}</strong>
+  <p class="muted">${esc(s.text||'')}</p>
+  ${s.image?`<img src="${s.image}" alt="Banner" style="width:100%;max-width:360px;max-height:130px;object-fit:cover;border-radius:12px;margin:8px 0">`:''}
+  <button class="danger" data-banner-delete="${i}">O‘chirish</button>
+ </div>`).join(''):'<p class="muted">Hozircha bannerlar yo‘q.</p>';
+ $('bannerList').querySelectorAll('[data-banner-delete]').forEach(b=>b.onclick=()=>{
+  const i=Number(b.dataset.bannerDelete);
+  if(!confirm('Bannerni o‘chirasizmi?'))return;
+  slides=slides.filter((_,index)=>index!==i);
+  if(save(SLIDE_KEY,slides))renderBanners();
  });
- save(SLIDE_KEY,banners);
- $('bannerModal').classList.remove('show');
- $('bannerForm').reset();
- renderBanners();
-};
+}
+async function shoplyImageData(file){
+ if(!file)return '';
+ if(!file.type.startsWith('image/'))throw new Error('Faqat rasm faylini tanlang.');
+ return await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onerror=()=>reject(new Error('Rasmni o‘qib bo‘lmadi.'));reader.onload=()=>{const img=new Image();img.onerror=()=>reject(new Error('Rasm formati ochilmadi.'));img.onload=()=>{const max=1800,scale=Math.min(1,max/Math.max(img.width,img.height));const canvas=document.createElement('canvas');canvas.width=Math.round(img.width*scale);canvas.height=Math.round(img.height*scale);const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0,canvas.width,canvas.height);resolve(canvas.toDataURL('image/jpeg',.84));};img.src=reader.result;};reader.readAsDataURL(file);});
+}
+$('bImageFile').addEventListener('change',async()=>{const file=$('bImageFile').files?.[0];const box=$('bImagePreview');if(!file){box.style.display='none';return}try{const data=await shoplyImageData(file);box.querySelector('img').src=data;box.style.display='block'}catch(e){alert(e.message)}});
+$('bannerForm').addEventListener('submit',async e=>{
+ e.preventDefault();refreshData();
+ const file=$('bImageFile').files?.[0];let image=$('bImageUrl').value.trim();
+ try{if(file)image=await shoplyImageData(file)}catch(err){alert(err.message);return}
+ if(image&&!/^data:image\/(jpeg|png|webp|gif);base64,/i.test(image)&&!/^https?:\/\//i.test(image)){alert('Rasm URL manzili https:// bilan boshlanishi kerak.');return}
+ slides.push({title:$('bTitle').value.trim(),text:$('bText').value.trim(),eyebrow:$('bEyebrow').value.trim(),emoji:$('bEmoji').value.trim()||'✳',color:$('bColor').value,image});
+ if(save(SLIDE_KEY,slides)){$('bannerForm').reset();$('bEyebrow').value='SHOPLY COLLECTION';$('bEmoji').value='✳';$('bColor').value='#b7f34a';$('bImagePreview').style.display='none';$('bannerModal').classList.remove('show');renderBanners();}
+});
 
-let settings=read(SETTINGS_KEY,{});
 function applyAccent(color){
- document.documentElement.style.setProperty('--accent',color||'#b7f34a');
+ const valid=/^#[0-9a-f]{6}$/i.test(color||'')?color:'#b7f34a';
+ document.documentElement.style.setProperty('--accent',valid);
 }
 function loadProfile(){
- $('accentColor').value=settings.accent||'#b7f34a';
- $('profileInfo').textContent='SHOPLY admin panel';
+ profile=readObject(PROFILE_KEY,{name:'',email:''});
+ if(String(profile.name||'').trim().toLowerCase()==='jamshid'){profile.name='';save(PROFILE_KEY,profile)}
+ $('profileName').value=profile.name||'';
+ $('profileEmail').value=profile.email||'';
+ $('avatar').textContent=(profile.name||'J').trim().charAt(0).toUpperCase()||'J';
 }
-$('saveSettings').onclick=()=>{
- settings={...settings,accent:$('accentColor').value};
- if(save(SETTINGS_KEY,settings)){applyAccent(settings.accent);alert('Rang saqlandi.')}
-};
+$('saveProfile').addEventListener('click',()=>{
+ const name=$('profileName').value.trim();
+ const email=$('profileEmail').value.trim();
+ if(!name){alert('Ismni kiriting.');return}
+ if(save(PROFILE_KEY,{name,email})){loadProfile();alert('Profil saqlandi.')}
+});
+function chooseSiteTheme(theme){const accents={glass:'#9cdbff',soft:'#d9c7ff',night:'#a9d8ff',current:'#b7f34a'};const accent=accents[theme]||accents.current;$('siteTheme').value=theme;document.body.dataset.adminTheme=theme; $('accentColor').value=accent;applyAccent(accent);document.querySelectorAll('[data-theme-pick]').forEach(b=>b.classList.toggle('active',b.dataset.themePick===theme));$('currentDesign').classList.toggle('active',theme==='current');const cfg={...readObject('shoply_site_builder_v1',{}),theme,accent};save('shoply_site_builder_v1',cfg);localStorage.setItem('shoply_site_builder_v1',JSON.stringify(cfg));window.shoplyBackupWrite?.('shoply_site_builder_v1',JSON.stringify(cfg));}document.querySelectorAll('[data-theme-pick]').forEach(btn=>btn.addEventListener('click',()=>chooseSiteTheme(btn.dataset.themePick)));$('currentDesign').addEventListener('click',()=>chooseSiteTheme('current'));$('saveColor').addEventListener('click',()=>{const cfg={...readObject('shoply_site_builder_v1',{}),theme:$('siteTheme').value,accent:$('accentColor').value};save('shoply_site_builder_v1',cfg);applyAccent(cfg.accent);localStorage.setItem('shoply_site_builder_v1',JSON.stringify(cfg));alert('Dizayn saqlandi. Mahsulotlar va buyurtmalar o‘zgarmadi.');});
+$('resetSiteDesign').onclick=async()=>{if(!confirm('Sayt dizayni va joylashuvini boshlang‘ich holatga qaytarasizmi? Mahsulotlar va buyurtmalar o‘chmaydi.'))return;const cfg={...readObject('shoply_site_builder_v1',{}),theme:'current',accent:'#b7f34a',navOrder:[],layoutOrder:[]};save('shoply_site_builder_v1',cfg);const ok=await window.shoplyPush?.('shoply_site_builder_v1',cfg);document.body.dataset.adminTheme='current';$('siteTheme').value='current';$('accentColor').value='#b7f34a';applyAccent('#b7f34a');applyNavOrder([]);document.querySelectorAll('[data-theme-pick]').forEach(b=>b.classList.remove('active'));$('currentDesign').classList.add('active');alert('Dizayn tiklandi. Mahsulotlar va buyurtmalar saqlanib qoldi.');};
+$('saveAdminCredentials').onclick=()=>{const adminLogin=$('newAdminLogin').value.trim(),adminPassword=$('newAdminPassword').value;if(!adminLogin||!adminPassword){alert('Login va parolni to‘ldiring.');return}save('shoply_site_builder_v1',{...readObject('shoply_site_builder_v1',{}),adminLogin,adminPassword});alert('Admin login va paroli saqlandi.');};
+
+async function renderOrders(){
+ const body=$('ordersRows');body.innerHTML='<tr><td colspan="6">Buyurtmalar yuklanmoqda...</td></tr>';
+ try{const r=await fetch('/api/orders',{cache:'no-store'});if(!r.ok)throw new Error();const list=await r.json();const orders=Array.isArray(list)?list:[];
+ $('ordersTotal').textContent=orders.length;$('ordersNew').textContent=orders.filter(o=>(o.status||'Yangi')==='Yangi').length;$('ordersProcess').textContent=orders.filter(o=>o.status==='Jarayonda').length;$('ordersDone').textContent=orders.filter(o=>o.status==='Yetkazildi').length;
+ body.innerHTML=orders.length?orders.map(o=>`<tr><td><b>${esc(o.id||'—')}</b></td><td>${esc(o.name||'—')}<br><small>${esc(o.phone||'')}</small><br><small>${esc(o.address||'')}</small></td><td>${(o.items||[]).map(i=>esc(i.name)+' × '+Number(i.quantity||1)).join('<br>')}</td><td><b>${sumMoney(o.total)}</b></td><td>${esc(new Date(o.createdAt).toLocaleString('uz-UZ'))}</td><td><select class="field order-status" data-order="${esc(o.id)}" style="min-width:125px"><option ${o.status==='Yangi'?'selected':''}>Yangi</option><option ${o.status==='Jarayonda'?'selected':''}>Jarayonda</option><option ${o.status==='Yetkazildi'?'selected':''}>Yetkazildi</option><option ${o.status==='Bekor qilindi'?'selected':''}>Bekor qilindi</option></select></td></tr>`).join(''):'<tr><td colspan="6">Hozircha buyurtma yo‘q.</td></tr>';
+ body.querySelectorAll('.order-status').forEach(sel=>sel.onchange=async()=>{try{const state=await fetch('/api/state/shoply_orders_v1',{cache:'no-store'}).then(x=>x.json());const arr=Array.isArray(state.value)?state.value:[];const order=arr.find(x=>String(x.id)===String(sel.dataset.order));if(order){order.status=sel.value;const saved=await fetch('/api/state/shoply_orders_v1',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({value:arr})});if(!saved.ok)throw new Error();renderOrders()}}catch{alert('Buyurtma holatini saqlab bo‘lmadi.')}});
+ }catch{body.innerHTML='<tr><td colspan="6">Buyurtmalarni yuklab bo‘lmadi. Server va Supabase ulanishini tekshiring.</td></tr>'}
+}
+async function renderReviews(){const box=$('reviewsList');box.innerHTML='<p class="muted">Sharhlar yuklanmoqda...</p>';try{const r=await fetch('/api/state/shoply_reviews_v1',{cache:'no-store'});const d=await r.json();const data=d.value||{};const rows=[];Object.entries(data).forEach(([id,list])=>(Array.isArray(list)?list:[]).forEach(v=>rows.push({...v,productId:id})));const avg=rows.length?rows.reduce((a,b)=>a+(Number(b.rating)||5),0)/rows.length:0;$('reviewsTotal').textContent=rows.length;$('reviewsAverage').textContent=rows.length?avg.toFixed(1)+'/5':'—';box.innerHTML=rows.length?rows.slice().reverse().map(v=>`<article style="padding:14px 0;border-bottom:1px solid var(--line)"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><b>${esc(v.name||'Xaridor')}</b><span style="color:#d69b20">${'★'.repeat(Number(v.rating)||5)}${'☆'.repeat(5-(Number(v.rating)||5))}</span></div><div class="muted">Mahsulot ID: ${esc(v.productId)} · ${esc(v.createdAt||'')}</div><p>${esc(v.text||'')}</p></article>`).join(''):'<p class="muted">Hozircha sharhlar yo‘q.</p>'}catch{box.innerHTML='<p class="muted">Sharhlarni yuklab bo‘lmadi.</p>'}}
+$('refreshOrders').onclick=renderOrders;$('refreshReviews').onclick=renderReviews;
 
 function showSection(id){
  document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active',s.id===id));
  document.querySelectorAll('[data-section]').forEach(b=>b.classList.toggle('active',b.dataset.section===id));
- const names={dashboard:'Boshqaruv',products:'Mahsulotlar',cart:'Savat statistikasi',banners:'Bannerlar',settings:'Sozlamalar'};
+ const names={dashboard:'Boshqaruv',products:'Mahsulotlar',cart:'Savat statistikasi',orders:'Buyurtmalar',reviews:'Sharhlar',banners:'Bannerlar',settings:'Sozlamalar'};
  $('pageTitle').textContent=names[id]||'Admin panel';
  $('headerAdd').classList.toggle('hidden',id!=='products');
  if(id==='dashboard'||id==='cart')renderCart();
  if(id==='products')renderProducts();
  if(id==='banners')renderBanners();
+ if(id==='orders')renderOrders();
+ if(id==='reviews')renderReviews();
  if(id==='settings')loadProfile();
 }
 document.querySelectorAll('[data-section]').forEach(b=>b.onclick=()=>showSection(b.dataset.section));
@@ -447,13 +847,13 @@ $('refreshCart').onclick=renderCart;
 $('backStore').onclick=()=>location.href='index.html';
 $('logout').onclick=()=>{
  sessionStorage.removeItem('mono_admin_session');
- sessionStorage.removeItem('shoply_admin_token');
  location.replace('index.html');
 };
 document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{
  if(e.target===m)m.classList.remove('show');
 }));
 
+// Telefon uchun JSON zaxira eksport/import tugmalari.
 (function setupShoplyBackup(){
  const exportBtn=document.getElementById('exportShoplyJson');
  const importBtn=document.getElementById('importShoplyJsonBtn');
@@ -472,28 +872,67 @@ document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{
  });
  importBtn.addEventListener('click',()=>importFile.click());
  importFile.addEventListener('change',async()=>{
-  const file=importFile.files?.[0];if(!file)return;
+  const file=importFile.files&&importFile.files[0];if(!file)return;
   try{
-   const backup=JSON.parse(await file.text());
-   const data=backup.data||backup;
-   keys.forEach(key=>{if(Object.prototype.hasOwnProperty.call(data,key))localStorage.setItem(key,JSON.stringify(data[key]))});
-   refreshData();renderProducts();renderCart();renderBanners();
-   if(status)status.textContent='Zaxira muvaffaqiyatli tiklandi.';
-  }catch(error){if(status)status.textContent='JSON faylni o‘qishda xato.'}
-  importFile.value='';
+   const parsed=JSON.parse(await file.text());
+   const data=parsed&&parsed.format==='SHOPLY_JSON_BACKUP'?parsed.data:parsed;
+   if(!data||typeof data!=='object'||!Array.isArray(data[PRODUCT_KEY]))throw new Error('Mahsulotlar topilmadi');
+   if(!confirm('Zaxiradagi ma’lumotlar shu brauzerdagi ma’lumotlar bilan almashtirilsinmi?'))return;
+   for(const key of keys){if(Object.prototype.hasOwnProperty.call(data,key))localStorage.setItem(key,JSON.stringify(data[key]));}
+   if(status)status.textContent='Zaxira tiklandi. Sahifa yangilanmoqda…';
+   location.reload();
+  }catch(error){alert('JSON faylni o‘qib bo‘lmadi. SHOPLY zaxira faylini tanlang.');}
+  finally{importFile.value='';}
  });
 })();
 
 $('todayText').textContent=new Date().toLocaleDateString('uz-UZ',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 $('accentColor').value=settings.accent||'#b7f34a';
 applyAccent(settings.accent||'#b7f34a');
+
+// Bosh sahifa bloklarini drag-and-drop tartiblash.
+function wireHomeLayout(){const box=$('homeLayoutEditor');if(!box)return;fetch('/api/state/shoply_site_builder_v1').then(r=>r.ok?r.json():null).then(d=>{const order=d?.value?.layoutOrder||[];if(order.length){order.forEach(id=>{const el=box.querySelector(`[data-layout="${id}"]`);if(el)box.appendChild(el)})}}).catch(()=>{});let dragging=null;box.querySelectorAll('.layout-item').forEach(el=>{el.addEventListener('dragstart',()=>dragging=el);el.addEventListener('dragover',e=>e.preventDefault());el.addEventListener('drop',e=>{e.preventDefault();if(dragging&&dragging!==el)box.insertBefore(dragging,el)})});$('saveHomeLayout').onclick=async()=>{const cfg={...readObject('shoply_site_builder_v1',{}),layoutOrder:[...box.querySelectorAll('[data-layout]')].map(x=>x.dataset.layout)};save('shoply_site_builder_v1',cfg);window.shoplyBackupWrite?.('shoply_site_builder_v1',JSON.stringify(cfg));alert('Bosh sahifa joylashuvi saqlandi.')};}
+wireHomeLayout();
+// Offline admin login: yangi standart kirish shoply / 24001214.
+(function adminGate(){
+  try{const cfg=JSON.parse(localStorage.getItem('shoply_site_builder_v1')||'{}')||{};if(!cfg.adminPassword||cfg.adminPassword==='2400'){cfg.adminLogin=cfg.adminLogin||'shoply';cfg.adminPassword='24001214';localStorage.setItem('shoply_site_builder_v1',JSON.stringify(cfg));}}catch{}
+  const gate=$('adminGate'), login=$('gateLogin'), password=$('gatePassword'), error=$('gateError'), button=$('gateSubmit');
+  if(!gate||!login||!password||!button)return;
+  // Browser autofillni oldini olish: maydonlar bo‘sh bo‘lishi shart.
+  login.value=''; password.value=''; login.setAttribute('autocomplete','off'); login.setAttribute('name','shoply_user_field_20261031'); password.setAttribute('autocomplete','new-password');
+  const clearAutofill=()=>{if(!login.dataset.userStarted)login.value='';if(!password.dataset.userStarted)password.value='';};
+  login.addEventListener('input',()=>login.dataset.userStarted='1');password.addEventListener('input',()=>password.dataset.userStarted='1');
+  window.addEventListener('pageshow',clearAutofill);setTimeout(clearAutofill,80);setTimeout(clearAutofill,450);
+  if(sessionStorage.getItem('shoply_admin_session')==='1'){gate.remove();return;}
+  function enter(){
+    const enteredLogin=login.value.trim();
+    const enteredPassword=password.value;
+    let cfg={};
+    try{cfg=JSON.parse(localStorage.getItem('shoply_site_builder_v1')||'{}')||{};}catch{}
+    const savedLogin=String(cfg.adminLogin||'shoply').trim();
+    const savedPassword=String(cfg.adminPassword||'24001214');
+    const accepted=(enteredLogin===savedLogin&&enteredPassword===savedPassword);
+    if(accepted){sessionStorage.setItem('shoply_admin_session','1');gate.remove();return;}
+    error.textContent='Login yoki parol noto‘g‘ri. Qayta tekshirib kiriting.';
+    password.value=''; password.focus();
+  }
+  button.addEventListener('click',enter);
+  password.addEventListener('keydown',e=>{if(e.key==='Enter')enter();});
+  login.addEventListener('keydown',e=>{if(e.key==='Enter')password.focus();});
+})();
+function applyNavOrder(order){const side=document.getElementById('adminSidebar');if(!side)return;const navs=[...side.querySelectorAll('[data-section]')];if(!Array.isArray(order)||!order.length)return;order.forEach(id=>{const b=navs.find(x=>x.dataset.section===id);if(b)side.insertBefore(b,side.querySelector('.bottom'))})}
+(async function loadBuilderSettings(){try{const cfg=readObject('shoply_site_builder_v1',{});document.body.dataset.adminTheme=cfg.theme||'current';if($('siteTheme'))$('siteTheme').value=cfg.theme||'current';document.querySelectorAll('[data-theme-pick]').forEach(b=>b.classList.toggle('active',b.dataset.themePick===(cfg.theme||'current')));$('currentDesign')?.classList.toggle('active',!['glass','soft','night'].includes(cfg.theme));if($('accentColor'))$('accentColor').value=cfg.accent||'#b7f34a';if(cfg.accent)applyAccent(cfg.accent);applyNavOrder(cfg.navOrder||[]);const navs=[...document.querySelectorAll('#adminSidebar [data-section]')];navs.forEach(b=>{b.draggable=true;b.addEventListener('dragstart',e=>e.dataTransfer.setData('text/plain',b.dataset.section));b.addEventListener('dragover',e=>e.preventDefault());b.addEventListener('drop',e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain'),from=navs.find(x=>x.dataset.section===id);if(from&&from!==b){b.parentNode.insertBefore(from,b);const cfg2={...cfg,navOrder:[...document.querySelectorAll('#adminSidebar [data-section]')].map(x=>x.dataset.section)};save('shoply_site_builder_v1',cfg2)}})})}catch(e){console.warn('Builder sozlamalari yuklanmadi',e)}})();
+
+
+
 loadProfile();
 renderProducts();
 renderCart();
 renderBanners();
 
 window.addEventListener('storage',e=>{
- if([PRODUCT_KEY,CART_EVENT_KEY,SLIDE_KEY,SETTINGS_KEY].includes(e.key)){
+ if([PRODUCT_KEY,CART_EVENT_KEY,SLIDE_KEY,SETTINGS_KEY,PROMO_KEY].includes(e.key)){
+  if(e.key===PROMO_KEY)renderPromos();
   refreshData();
   renderProducts();
   renderCart();

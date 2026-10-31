@@ -1,15 +1,9 @@
 {
-  "name": "shoply-store",
-  "version": "1.1.0",
+  "name": "shoply-online-store",
+  "version": "1.0.0",
   "private": true,
-  "description": "SHOPLY store with shared persistent Netlify storage",
-  "scripts": {
-    "start": "node server.js"
-  },
-  "dependencies": {
-    "@netlify/blobs": "^10.5.0"
-  },
-  "engines": {
-    "node": ">=18"
-  }
+  "description": "SHOPLY online store with admin panel and Supabase persistent storage",
+  "main": "server.js",
+  "scripts": {"start": "node server.js"},
+  "engines": {"node": ">=18"}
 }
