@@ -1,8 +1,8 @@
 {
-  "name": "shoply-online-store",
-  "version": "1.0.0",
+  "name": "shoply-stable-store",
+  "version": "2.0.0",
   "private": true,
-  "description": "SHOPLY online store with admin panel and Supabase persistent storage",
+  "description": "SHOPLY store with Supabase persistence and isolated client carts",
   "main": "server.js",
   "scripts": {"start": "node server.js"},
   "engines": {"node": ">=18"}
