@@ -909,10 +909,18 @@ wireHomeLayout();
     const enteredPassword=password.value;
     let cfg={};
     try{cfg=JSON.parse(localStorage.getItem('shoply_site_builder_v1')||'{}')||{};}catch{}
-    const savedLogin=String(cfg.adminLogin||'shoply').trim();
-    const savedPassword=String(cfg.adminPassword||'24001214');
-    const accepted=(enteredLogin===savedLogin&&enteredPassword===savedPassword);
-    if(accepted){sessionStorage.setItem('shoply_admin_session','1');gate.remove();return;}
+    // Yagona SHOPLY admin login. Eski 2400 paroli migratsiya uchun vaqtincha qabul qilinadi.
+    // Muvaffaqiyatli kirgandan so'ng parol 24001214 ga normallashtiriladi.
+    const accepted=(enteredLogin==='shoply' && (enteredPassword==='24001214' || enteredPassword==='2400'));
+    if(accepted){
+      cfg.adminLogin='shoply';
+      cfg.adminPassword='24001214';
+      try{localStorage.setItem('shoply_site_builder_v1',JSON.stringify(cfg));}catch(e){}
+      try{if(window.shoplyPush)void window.shoplyPush('shoply_site_builder_v1',cfg);}catch(e){}
+      sessionStorage.setItem('shoply_admin_session','1');
+      gate.remove();
+      return;
+    }
     error.textContent='Login yoki parol noto‘g‘ri. Qayta tekshirib kiriting.';
     password.value=''; password.focus();
   }
