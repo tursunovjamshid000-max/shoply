@@ -400,7 +400,7 @@ html,body{max-width:100%;overflow-x:hidden!important}
   <input class="field" id="pImage" type="url" placeholder="https://...">
   <label class="label" for="pImages">Qo‘shimcha rasmlar (3 tagacha URL, vergul bilan)</label><textarea class="field" id="pImages" rows="2" placeholder="https://rasm2.jpg, https://rasm3.jpg"></textarea><p class="muted">Jami 4 tagacha rasm: asosiy rasm + 3 ta qo‘shimcha.</p>
   <label class="label" for="pImageFile">Yoki telefon/kompyuterdan rasm tanlang</label>
-  <input class="field" id="pImageFile" type="file" accept="image/*">
+  <input class="field" id="pImageFile" type="file" accept="image/*" multiple><p class="muted">Bir nechta rasmni bir vaqtda tanlashingiz mumkin (Ctrl yoki Shift bilan).</p>
   <div id="pImagePreview" style="display:none;margin:-5px 0 14px"><img alt="Rasm ko‘rinishi" style="max-width:100%;max-height:180px;object-fit:contain;border-radius:10px"></div>
   <label class="label" for="pSizes">Razmerlar (vergul bilan)</label>
   <input class="field" id="pSizes" maxlength="180" placeholder="Masalan: S, M, L, XL yoki 38, 39, 40">
@@ -605,20 +605,27 @@ function renderProducts(){
  $('productGrid').querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openProduct(b.dataset.edit));
  $('productGrid').querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>deleteProduct(b.dataset.delete));
 }
-let uploadedProductImage='';
+let uploadedProductImages=[];
 $('pImageFile').addEventListener('change',async e=>{
- const file=e.target.files&&e.target.files[0];if(!file)return;
- if(!file.type.startsWith('image/')){alert('Rasm faylini tanlang.');e.target.value='';return}
- if(file.size>15*1024*1024){alert('Rasm 15 MB dan kichik bo‘lsin.');e.target.value='';return}
- try{uploadedProductImage=await compressImage(file);$('pImage').value='';const box=$('pImagePreview');box.style.display='block';box.querySelector('img').src=uploadedProductImage}
- catch(err){alert('Rasmni o‘qib bo‘lmadi. Boshqa rasm tanlang.');}
+ const files=Array.from(e.target.files||[]);if(!files.length)return;
+ if(files.some(f=>!f.type.startsWith('image/'))){alert('Faqat rasm fayllarini tanlang.');e.target.value='';return}
+ if(files.some(f=>f.size>15*1024*1024)){alert('Har bir rasm 15 MB dan kichik bo‘lsin.');e.target.value='';return}
+ const input=e.target,box=$('pImagePreview');input.disabled=true;
+ try{
+  const converted=await Promise.all(files.map(compressImage));
+  uploadedProductImages=converted;
+  $('pImage').value='';
+  box.style.display='block';
+  box.innerHTML='<div style="display:flex;gap:8px;flex-wrap:wrap">'+converted.map((src,i)=>'<img alt="Rasm '+(i+1)+'" src="'+src+'" style="width:76px;height:76px;object-fit:cover;border-radius:9px">').join('')+'</div><p class="muted">'+converted.length+' ta rasm tanlandi</p>';
+ }catch(err){uploadedProductImages=[];input.value='';alert(err.message||'Rasmlarni o‘qib bo‘lmadi. Boshqa rasm tanlang.');}
+ finally{input.disabled=false}
 });
 function compressImage(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onerror=()=>reject(new Error('Rasmni o‘qib bo‘lmadi'));reader.onload=()=>{const img=new Image();img.onerror=()=>reject(new Error('Rasm formati ochilmadi'));img.onload=()=>{const max=640,scale=Math.min(1,max/Math.max(img.width,img.height)),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));const ctx=canvas.getContext('2d');if(!ctx)return reject(new Error('Rasmni qayta ishlash imkoni yo‘q'));ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);const data=canvas.toDataURL('image/jpeg',.56);if(data.length>450000) return reject(new Error('Rasm hajmi katta. Kichikroq rasm tanlang.'));resolve(data)};img.src=reader.result};reader.readAsDataURL(file)})}
 function newId(){return Date.now()+Math.floor(Math.random()*10000)}
 function openProduct(id=null){
  refreshData();
  editingId=id;
- $('productForm').reset();uploadedProductImage='';$('pImagePreview').style.display='none';
+ $('productForm').reset();uploadedProductImages=[];$('pImageFile').value='';$('pImagePreview').style.display='none';
  $('formTitle').textContent=id===null?'Mahsulot qo‘shish':'Mahsulotni tahrirlash';
  const p=id===null?null:products.find(x=>String(x.id)===String(id));
  if(id!==null&&!p){alert('Mahsulot topilmadi.');return}
@@ -629,12 +636,12 @@ function openProduct(id=null){
   $('pPrice').value=p.price??'';
   $('pOld').value=p.oldPrice??'';
   $('pRating').value=p.rating??4.8;
-  $('pImage').value=p.image||'';$('pImages').value=(Array.isArray(p.images)?p.images:[]).join(', ');
+  $('pImage').value=p.image||'';$('pImages').value=(Array.isArray(p.images)?p.images.filter(x=>!String(x).startsWith('data:image/')):[]).join(', ');
   $('pBadge').value=p.badge||'';
   $('pDescription').value=p.description||'';
   $('pSizes').value=Array.isArray(p.sizes)?p.sizes.join(', '):(p.sizes||'');
   $('pColors').value=Array.isArray(p.colors)?p.colors.join(', '):(p.colors||'');
-  if(p.image&&p.image.startsWith('data:image/')){uploadedProductImage=p.image;$('pImagePreview').style.display='block';$('pImagePreview').querySelector('img').src=p.image}
+  if(p.image&&p.image.startsWith('data:image/')){uploadedProductImages=[p.image,...(Array.isArray(p.images)?p.images.filter(x=>String(x).startsWith('data:image/')):[])];const box=$('pImagePreview');box.style.display='block';box.innerHTML='<div style="display:flex;gap:8px;flex-wrap:wrap">'+uploadedProductImages.map((src,i)=>'<img alt="Rasm '+(i+1)+'" src="'+src+'" style="width:76px;height:76px;object-fit:cover;border-radius:9px">').join('')+'</div><p class="muted">'+uploadedProductImages.length+' ta saqlangan rasm</p>';}
  }else{
   $('pCategory').value='women';
   $('pRating').value='4.8';
@@ -654,8 +661,8 @@ $('productForm').addEventListener('submit',async e=>{
   price:Number($('pPrice').value),
   oldPrice:Number($('pOld').value)||0,
   rating:String($('pRating').value||4.8),
-  image:uploadedProductImage||$('pImage').value.trim()||(products.find(x=>String(x.id)===String(editingId))||{}).image||'',
-  images:$('pImages').value.split(',').map(x=>x.trim()).filter(Boolean).slice(0,3),
+  image:uploadedProductImages[0]||$('pImage').value.trim()||(products.find(x=>String(x.id)===String(editingId))||{}).image||'',
+  images:[...uploadedProductImages.slice(1),...$('pImages').value.split(',').map(x=>x.trim()).filter(Boolean)],
   sizes:$('pSizes').value.split(',').map(x=>x.trim()).filter(Boolean),
   colors:$('pColors').value.split(',').map(x=>x.trim()).filter(Boolean),
   badge:$('pBadge').value.trim(),
