@@ -389,7 +389,7 @@ html,body{max-width:100%;overflow-x:hidden!important}
     <option value="sub">Boshqa / maxsus</option>
   </select>
   <label class="label" for="pSub">Mahsulot turi</label>
-  <input class="field" id="pSub" maxlength="80" placeholder="Masalan: Futbolka">
+  <input class="field" id="pSub" list="pSubSuggestions" maxlength="80" placeholder="Masalan: Krasovka"><datalist id="pSubSuggestions"></datalist>
   <label class="label" for="pPrice">Narxi (so‘m) *</label>
   <input class="field" id="pPrice" type="number" min="0" required>
   <label class="label" for="pOld">Eski narxi (ixtiyoriy)</label>
@@ -544,6 +544,14 @@ let settings=readObject(SETTINGS_KEY,{accent:'#b7f34a'});
 let profile=readObject(PROFILE_KEY,{name:'',email:''});
 let events=readArray(CART_EVENT_KEY,[]);
 let editingId=null;
+function refreshSubSuggestions(){
+ const category=$('pCategory')?.value;
+ const values=[...new Set(products.filter(p=>toCategoryKey(p)===category).map(p=>String(p.sub||'').trim()).filter(v=>v&&v!=='Tanlangan'))];
+ const list=$('pSubSuggestions');
+ if(list)list.innerHTML=values.map(v=>'<option value="'+esc(v)+'"></option>').join('');
+}
+$('pCategory').addEventListener('change',refreshSubSuggestions);
+$('pSub').addEventListener('focus',refreshSubSuggestions);
 
 function toCategoryKey(p){
  const raw=p.category||p.cat||'';
@@ -646,6 +654,7 @@ function openProduct(id=null){
   $('pCategory').value='women';
   $('pRating').value='4.8';
  }
+ refreshSubSuggestions();
  $('productModal').classList.add('show');
 }
 function closeProduct(){$('productModal').classList.remove('show');editingId=null}

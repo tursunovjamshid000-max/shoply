@@ -253,6 +253,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden!important;margin:0}
     <button class="cat-card" data-cat="Aksessuarlar"><img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=500&q=80" alt=""><span>Aksessuar</span></button>
     <button class="cat-card" data-cat="Elektronika"><img src="https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=500&q=80" alt=""><span>Elektronika</span></button>
   </div>
+  <div id="subcategoryBar" style="display:none;gap:8px;overflow-x:auto;padding:2px 2px 12px;margin-top:-8px;scrollbar-width:thin"></div>
   <section id="productSection">
     <div class="section-head"><h2 id="productTitle">Barcha mahsulotlar</h2><span class="muted" id="productCount"></span></div>
     <div class="products" id="products"></div>
@@ -265,7 +266,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden!important;margin:0}
 <div class="modal-bg" id="productModal"><div class="modal product-detail-modal"><div class="modal-head"><h2 id="detailTitle">Mahsulot</h2><button class="close" data-close="productModal">✕</button></div><div id="detailBody"></div></div></div>
 <div class="modal-bg" id="reviewModal"><div class="modal"><div class="modal-head"><h2 id="reviewTitle">Mahsulot sharhlari</h2><button class="close" data-close="reviewModal">✕</button></div><div id="reviewList"></div><hr style="border:0;border-top:1px solid var(--line);margin:16px 0"><h3>Sharh qoldirish</h3><input class="field" id="reviewName" maxlength="60" placeholder="Ismingiz"><select class="field" id="reviewRating"><option value="5">★★★★★ — 5</option><option value="4">★★★★☆ — 4</option><option value="3">★★★☆☆ — 3</option><option value="2">★★☆☆☆ — 2</option><option value="1">★☆☆☆☆ — 1</option></select><textarea class="field" id="reviewText" rows="3" maxlength="700" placeholder="Mahsulot haqida fikringiz..."></textarea><button class="primary" id="sendReview" style="width:100%">Sharhni yuborish</button><p class="muted" id="reviewStatus"></p></div></div>
 <div class="modal-bg" id="profileModal"><div class="modal"><div class="modal-head"><h2>Profilim</h2><button class="close" data-close="profileModal">✕</button></div><label>Ismingiz</label><input class="field" id="profileName" placeholder="Ismingiz"><label>Telefon raqamingiz</label><input class="field" id="profilePhone" placeholder="+998..."><button class="primary" id="saveProfile" style="width:100%">Saqlash</button></div></div>
-<div class="modal-bg" id="settingsModal"><div class="modal"><div class="modal-head"><h2>Sozlamalar</h2><button class="close" data-close="settingsModal">✕</button></div><label>Ko‘rinish</label><select class="field" id="themeSelect"><option value="light">Yorug‘ rejim</option><option value="dark">Qorong‘i rejim</option></select><p class="muted" style="font-size:12px">Tanlangan ko‘rinish ushbu qurilmada saqlanadi.</p><button class="primary" id="saveSettings" style="width:100%">Saqlash</button></div></div>
+<div class="modal-bg" id="settingsModal"><div class="modal"><div class="modal-head"><h2>Sozlamalar</h2><button class="close" data-close="settingsModal">✕</button></div><label>Ko‘rinish</label><select class="field" id="themeSelect"><option value="light">Yorug‘ rejim</option><option value="dark">Qorong‘i rejim</option></select><p class="muted" style="font-size:12px">Tanlangan ko‘rinish ushbu qurilmada saqlanadi.</p><button class="primary" id="saveSettings" style="width:100%">Saqlash</button><div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line,#e5e7eb)"><h3 style="margin:0 0 10px">Admin bilan bog‘lanish</h3><a href="https://t.me/zydex4" target="_blank" rel="noopener" class="primary" style="display:flex;justify-content:center;text-decoration:none;width:100%;box-sizing:border-box;margin-bottom:9px">Telegram: @zydex4</a><a href="tel:+998772753546" class="secondary" style="display:flex;justify-content:center;text-decoration:none;width:100%;box-sizing:border-box">☎ Qo‘ng‘iroq: 77 275 35 46</a></div></div></div>
 
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
@@ -282,7 +283,7 @@ let products=read(KEYS.products,[]);
 let banners=read(KEYS.banners,[]);
 let cart=read(KEYS.cart,{});
 let favorites=read(KEYS.favs,[]);
-let activeCategory='all',showFavorites=false,bannerIndex=0;
+let activeCategory='all',activeSubcategory='all',showFavorites=false,bannerIndex=0;
 let catalogOrderIds=null;
 function shuffleCatalog(){const a=[...products];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}catalogOrderIds=a.map(p=>String(p.id));}
 function orderedProducts(){if(!Array.isArray(catalogOrderIds))shuffleCatalog();const byId=new Map(products.map(p=>[String(p.id),p]));const ordered=catalogOrderIds.map(id=>byId.get(id)).filter(Boolean);for(const p of products)if(!catalogOrderIds.includes(String(p.id)))ordered.push(p);return ordered;}
@@ -299,11 +300,21 @@ const sidebar=$('siteSidebar'),scrim=$('drawerScrim');
 function toggleSidebar(open){sidebar.classList.toggle('mobile-open',open);scrim.classList.toggle('show',open)}
 $('menuToggle').onclick=()=>toggleSidebar(true);scrim.onclick=()=>toggleSidebar(false);
 function updateCounts(){$('favoriteCount').textContent=favorites.length;$('cartCount').textContent=Object.values(cart).reduce((a,b)=>a+Number(b||0),0)}
-function setCategory(cat){activeCategory=cat;showFavorites=false;document.querySelectorAll('[data-cat]').forEach(el=>el.classList.toggle('active',el.dataset.cat===cat));$('productTitle').textContent=cat==='all'?'Barcha mahsulotlar':cat;toggleSidebar(false);renderProducts()}
+function setCategory(cat){activeCategory=cat;activeSubcategory='all';showFavorites=false;document.querySelectorAll('[data-cat]').forEach(el=>el.classList.toggle('active',el.dataset.cat===cat));$('productTitle').textContent=cat==='all'?'Barcha mahsulotlar':cat;toggleSidebar(false);renderSubcategories();renderProducts()}
+function renderSubcategories(){
+ const bar=$('subcategoryBar');if(!bar)return;
+ if(activeCategory==='all'){bar.style.display='none';bar.innerHTML='';return}
+ const nameMap=new Map();products.filter(p=>String(p.cat||'')===activeCategory).forEach(p=>{const v=String(p.sub||'').trim();if(v&&v!=='Tanlangan'&&!nameMap.has(v.toLocaleLowerCase('uz')))nameMap.set(v.toLocaleLowerCase('uz'),v)});const names=[...nameMap.values()].sort((a,b)=>a.localeCompare(b,'uz'));
+ if(!names.length){bar.style.display='none';bar.innerHTML='';return}
+ bar.style.display='flex';
+ const chip=(name,value)=>`<button type="button" data-subcat="${esc(value)}" style="white-space:nowrap;border:1px solid var(--line,#ddd);border-radius:20px;padding:8px 14px;background:${activeSubcategory===value?'var(--accent,#b7f34a)':'var(--card,#fff)'};color:var(--ink,#191b16);font-weight:600;cursor:pointer">${esc(name)}</button>`;
+ bar.innerHTML=chip('Barchasi','all')+names.map(n=>chip(n,n)).join('');
+ bar.querySelectorAll('[data-subcat]').forEach(btn=>btn.addEventListener('click',()=>{activeSubcategory=btn.dataset.subcat;renderSubcategories();renderProducts()}));
+}
 document.querySelectorAll('[data-cat]').forEach(el=>el.addEventListener('click',()=>setCategory(el.dataset.cat)));
 function renderProducts(){
  const q=$('search').value.trim().toLocaleLowerCase('uz');
- let list=orderedProducts().filter(p=>(activeCategory==='all'||p.cat===activeCategory)&&String(p.name||'').toLocaleLowerCase('uz').includes(q));
+ let list=orderedProducts().filter(p=>(activeCategory==='all'||p.cat===activeCategory)&&(activeSubcategory==='all'||String(p.sub||'').trim().toLocaleLowerCase('uz')===activeSubcategory.toLocaleLowerCase('uz'))&&String(p.name||'').toLocaleLowerCase('uz').includes(q));
  if(showFavorites)list=list.filter(p=>favorites.includes(String(p.id))||favorites.includes(p.id));
  $('productCount').textContent=list.length+' ta';
  $('products').innerHTML=list.map(p=>{const imgs=productImages(p);const main=imgs[0]||'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=700&q=80';const rev=reviewCache[String(p.id)]||[];const avg=rev.length?(rev.reduce((a,x)=>a+(Number(x.rating)||5),0)/rev.length).toFixed(1):(p.rating||'0');return `<article class="product"><div class="product-image" data-open="${esc(p.id)}"><img loading="lazy" src="${esc(main)}" alt="${esc(p.name)}" onerror="this.src='https://placehold.co/600x600/f0f1eb/777?text=SHOPLY'"><button class="fav ${favorites.some(x=>String(x)===String(p.id))?'saved':''}" data-fav="${esc(p.id)}" aria-label="Sevimlilarga qo‘shish">${favorites.some(x=>String(x)===String(p.id))?'♥':'♡'}</button></div><div class="product-info" data-open="${esc(p.id)}"><span class="category-tag">${esc(p.cat)}</span><h3>${esc(p.name)}</h3><div class="price">${money(p.price)}</div></div><div style="padding:0 10px 11px"><button class="add" data-add="${esc(p.id)}">＋ Savatga qo‘shish</button></div></article>`}).join('')||'<div class="empty">Bu bo‘limda mahsulot topilmadi.</div>';
