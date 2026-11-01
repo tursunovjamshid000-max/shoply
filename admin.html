@@ -229,6 +229,7 @@ html,body{max-width:100%;overflow-x:hidden!important}
   <button class="nav" data-section="products">□ Mahsulotlar</button>
   <button class="nav" data-section="cart">🛒 Savat statistikasi</button>
   <button class="nav" data-section="orders">📦 Buyurtmalar</button>
+  <button class="nav" onclick="location.href='nasiya.html'">◷ Nasiya boshqaruvi</button>
   <button class="nav" data-section="reviews">⭐ Sharhlar</button>
   <button class="nav" data-section="banners">▧ Bannerlar</button>
   <button class="nav" data-section="settings">⚙ Sozlamalar</button>
@@ -324,6 +325,11 @@ html,body{max-width:100%;overflow-x:hidden!important}
   </div>
   <div class="panel"><div class="toolbar"><h2>Buyurtmalar ro‘yxati</h2><button class="secondary" id="refreshOrders">↻ Yangilash</button></div><div class="table-wrap"><table><thead><tr><th>Buyurtma</th><th>Xaridor</th><th>Mahsulotlar</th><th>Jami</th><th>Sana</th><th>Holat</th></tr></thead><tbody id="ordersRows"><tr><td colspan="6">Yuklanmoqda...</td></tr></tbody></table></div></div>
 </section>
+<section class="section" id="installments">
+ <div class="stats"><div class="stat"><div class="stat-label">Jami arizalar</div><div class="stat-value" id="instTotal">0</div></div><div class="stat"><div class="stat-label">Yangi</div><div class="stat-value" id="instNew">0</div></div><div class="stat"><div class="stat-label">Ko‘rib chiqilmoqda</div><div class="stat-value" id="instReview">0</div></div><div class="stat"><div class="stat-label">Yakunlangan</div><div class="stat-value" id="instClosed">0</div></div></div>
+ <div class="panel"><div class="toolbar"><h2>Nasiya bo‘yicha arizalar</h2><button class="secondary" id="refreshInstallments">↻ Yangilash</button></div><p class="muted">Sinov arizalari. Bu panel moliyaviy tasdiq yoki qarzdorlik reyestri emas. Email OTP faqat SMTP sozlangandan keyin ishlaydi. Email tasdig‘i shaxsni yoki to‘lov qobiliyatini tasdiqlamaydi.</p><div class="table-wrap"><table><thead><tr><th>Mijoz</th><th>Telefon</th><th>Email (tasdiq)</th><th>Mahsulot</th><th>Muddat</th><th>Haftalik hisob</th><th>Manzil</th><th>Sana</th><th>Holat</th></tr></thead><tbody id="installmentRows"><tr><td colspan="9">Yuklanmoqda...</td></tr></tbody></table></div></div>
+</section>
+
 <section class="section" id="reviews">
   <div class="stats"><div class="stat"><div class="stat-label">Jami sharhlar</div><div class="stat-value" id="reviewsTotal">0</div><div class="stat-note">Xaridorlar fikri</div></div><div class="stat"><div class="stat-label">O‘rtacha baho</div><div class="stat-value" id="reviewsAverage">—</div><div class="stat-note">5 ballik tizim</div></div></div>
   <div class="panel"><div class="toolbar"><h2>Mahsulot sharhlari</h2><button class="secondary" id="refreshReviews">↻ Yangilash</button></div><div id="reviewsList"></div></div>
@@ -389,7 +395,7 @@ html,body{max-width:100%;overflow-x:hidden!important}
     <option value="sub">Boshqa / maxsus</option>
   </select>
   <label class="label" for="pSub">Mahsulot turi</label>
-  <input class="field" id="pSub" list="pSubSuggestions" maxlength="80" placeholder="Masalan: Krasovka"><datalist id="pSubSuggestions"></datalist>
+  <input class="field" id="pSub" maxlength="80" placeholder="Masalan: Futbolka">
   <label class="label" for="pPrice">Narxi (so‘m) *</label>
   <input class="field" id="pPrice" type="number" min="0" required>
   <label class="label" for="pOld">Eski narxi (ixtiyoriy)</label>
@@ -544,14 +550,6 @@ let settings=readObject(SETTINGS_KEY,{accent:'#b7f34a'});
 let profile=readObject(PROFILE_KEY,{name:'',email:''});
 let events=readArray(CART_EVENT_KEY,[]);
 let editingId=null;
-function refreshSubSuggestions(){
- const category=$('pCategory')?.value;
- const values=[...new Set(products.filter(p=>toCategoryKey(p)===category).map(p=>String(p.sub||'').trim()).filter(v=>v&&v!=='Tanlangan'))];
- const list=$('pSubSuggestions');
- if(list)list.innerHTML=values.map(v=>'<option value="'+esc(v)+'"></option>').join('');
-}
-$('pCategory').addEventListener('change',refreshSubSuggestions);
-$('pSub').addEventListener('focus',refreshSubSuggestions);
 
 function toCategoryKey(p){
  const raw=p.category||p.cat||'';
@@ -654,7 +652,6 @@ function openProduct(id=null){
   $('pCategory').value='women';
   $('pRating').value='4.8';
  }
- refreshSubSuggestions();
  $('productModal').classList.add('show');
 }
 function closeProduct(){$('productModal').classList.remove('show');editingId=null}
@@ -799,19 +796,29 @@ async function renderOrders(){
  body.querySelectorAll('.order-status').forEach(sel=>sel.onchange=async()=>{try{const state=await fetch('/api/state/shoply_orders_v1',{cache:'no-store'}).then(x=>x.json());const arr=Array.isArray(state.value)?state.value:[];const order=arr.find(x=>String(x.id)===String(sel.dataset.order));if(order){order.status=sel.value;const saved=await fetch('/api/state/shoply_orders_v1',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({value:arr})});if(!saved.ok)throw new Error();renderOrders()}}catch{alert('Buyurtma holatini saqlab bo‘lmadi.')}});
  }catch{body.innerHTML='<tr><td colspan="6">Buyurtmalarni yuklab bo‘lmadi. Server va Supabase ulanishini tekshiring.</td></tr>'}
 }
+async function renderInstallments(){
+ const body=$('installmentRows');if(!body)return;body.innerHTML='<tr><td colspan="9">Yuklanmoqda...</td></tr>';
+ try{const r=await fetch('/api/admin/installment-requests',{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);const rows=await r.json();
+ $('instTotal').textContent=rows.length;$('instNew').textContent=rows.filter(x=>x.status==='Yangi ariza').length;$('instReview').textContent=rows.filter(x=>x.status==='Ko‘rib chiqilmoqda').length;$('instClosed').textContent=rows.filter(x=>['Yopildi','Rad etildi'].includes(x.status)).length;
+ body.innerHTML=rows.length?rows.map(x=>`<tr><td><b>${esc(x.name)}</b></td><td>${esc(x.phone)}</td><td>${esc(x.email||'—')}<br><small>${x.emailVerified?'✓ Tasdiqlangan':'Tasdiqlanmagan'}</small></td><td>${esc(x.productName)}</td><td>${Number(x.weeks)} hafta</td><td>${sumMoney(x.weeklyEstimate)}</td><td style="white-space:normal;min-width:160px">${esc(x.address)}</td><td>${esc((x.createdAt||'').slice(0,10))}</td><td><select class="field installment-status" data-id="${esc(x.id)}" style="min-width:145px"><option ${x.status==='Yangi ariza'?'selected':''}>Yangi ariza</option><option ${x.status==='Ko‘rib chiqilmoqda'?'selected':''}>Ko‘rib chiqilmoqda</option><option ${x.status==='Qo‘shimcha ma’lumot kerak'?'selected':''}>Qo‘shimcha ma’lumot kerak</option><option ${x.status==='Yopildi'?'selected':''}>Yopildi</option><option ${x.status==='Rad etildi'?'selected':''}>Rad etildi</option></select></td></tr>`).join(''):'<tr><td colspan="9">Hozircha nasiya arizalari yo‘q.</td></tr>';
+ body.querySelectorAll('.installment-status').forEach(sel=>sel.onchange=async()=>{try{const u=await fetch('/api/admin/installment-requests/'+encodeURIComponent(sel.dataset.id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:sel.value})});if(!u.ok)throw new Error();}catch{alert('Ariza holatini saqlab bo‘lmadi.');renderInstallments()}});
+ }catch(e){body.innerHTML='<tr><td colspan="9">Arizalarni yuklab bo‘lmadi. Admin sessiyasi va serverni tekshiring.</td></tr>'}
+}
+$('refreshInstallments')?.addEventListener('click',renderInstallments);
 async function renderReviews(){const box=$('reviewsList');box.innerHTML='<p class="muted">Sharhlar yuklanmoqda...</p>';try{const r=await fetch('/api/state/shoply_reviews_v1',{cache:'no-store'});const d=await r.json();const data=d.value||{};const rows=[];Object.entries(data).forEach(([id,list])=>(Array.isArray(list)?list:[]).forEach(v=>rows.push({...v,productId:id})));const avg=rows.length?rows.reduce((a,b)=>a+(Number(b.rating)||5),0)/rows.length:0;$('reviewsTotal').textContent=rows.length;$('reviewsAverage').textContent=rows.length?avg.toFixed(1)+'/5':'—';box.innerHTML=rows.length?rows.slice().reverse().map(v=>`<article style="padding:14px 0;border-bottom:1px solid var(--line)"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><b>${esc(v.name||'Xaridor')}</b><span style="color:#d69b20">${'★'.repeat(Number(v.rating)||5)}${'☆'.repeat(5-(Number(v.rating)||5))}</span></div><div class="muted">Mahsulot ID: ${esc(v.productId)} · ${esc(v.createdAt||'')}</div><p>${esc(v.text||'')}</p></article>`).join(''):'<p class="muted">Hozircha sharhlar yo‘q.</p>'}catch{box.innerHTML='<p class="muted">Sharhlarni yuklab bo‘lmadi.</p>'}}
 $('refreshOrders').onclick=renderOrders;$('refreshReviews').onclick=renderReviews;
 
 function showSection(id){
  document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active',s.id===id));
  document.querySelectorAll('[data-section]').forEach(b=>b.classList.toggle('active',b.dataset.section===id));
- const names={dashboard:'Boshqaruv',products:'Mahsulotlar',cart:'Savat statistikasi',orders:'Buyurtmalar',reviews:'Sharhlar',banners:'Bannerlar',settings:'Sozlamalar'};
+ const names={dashboard:'Boshqaruv',products:'Mahsulotlar',cart:'Savat statistikasi',orders:'Buyurtmalar',installments:'Nasiya arizalari',reviews:'Sharhlar',banners:'Bannerlar',settings:'Sozlamalar'};
  $('pageTitle').textContent=names[id]||'Admin panel';
  $('headerAdd').classList.toggle('hidden',id!=='products');
  if(id==='dashboard'||id==='cart')renderCart();
  if(id==='products')renderProducts();
  if(id==='banners')renderBanners();
  if(id==='orders')renderOrders();
+ if(id==='installments')renderInstallments();
  if(id==='reviews')renderReviews();
  if(id==='settings')loadProfile();
 }
@@ -884,14 +891,16 @@ wireHomeLayout();
   login.addEventListener('input',()=>login.dataset.userStarted='1');password.addEventListener('input',()=>password.dataset.userStarted='1');
   window.addEventListener('pageshow',clearAutofill);setTimeout(clearAutofill,80);setTimeout(clearAutofill,450);
   if(sessionStorage.getItem('shoply_admin_session')==='1'){gate.remove();return;}
-  function enter(){
+  async function enter(){
     const enteredLogin=login.value.trim();
     const enteredPassword=password.value;
+    let serverLogin=false;
+    try{const auth=await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({login:enteredLogin,password:enteredPassword})});const data=await auth.json();serverLogin=!!(auth.ok&&data.ok)}catch{}
     let cfg={};
     try{cfg=JSON.parse(localStorage.getItem('shoply_site_builder_v1')||'{}')||{};}catch{}
     // Yagona SHOPLY admin login. Eski 2400 paroli migratsiya uchun vaqtincha qabul qilinadi.
     // Muvaffaqiyatli kirgandan so'ng parol 24001214 ga normallashtiriladi.
-    const accepted=(enteredLogin==='shoply' && (enteredPassword==='24001214' || enteredPassword==='2400'));
+    const accepted=serverLogin;
     if(accepted){
       cfg.adminLogin='shoply';
       cfg.adminPassword='24001214';
@@ -901,7 +910,7 @@ wireHomeLayout();
       gate.remove();
       return;
     }
-    error.textContent='Login yoki parol noto‘g‘ri. Qayta tekshirib kiriting.';
+    error.textContent='Login yoki parol noto‘g‘ri yoki server bilan aloqa yo‘q. Qayta tekshiring.';
     password.value=''; password.focus();
   }
   button.addEventListener('click',enter);
