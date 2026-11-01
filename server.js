@@ -54,7 +54,7 @@ http.createServer(async(req,res)=>{
   try{
     if(p==='/api/health'&&req.method==='GET')return send(res,200,{ok:true,database:SUPABASE_URL&&SUPABASE_KEY?'configured':'missing',emailVerification:smtpReady()?'configured':'not_configured'});
     if(p==='/api/admin/login'&&req.method==='POST'){
-      const b=await readBody(req);const login=process.env.ADMIN_LOGIN||'shoply';const password=process.env.ADMIN_PASSWORD||'24001214';
+      const b=await readBody(req);const login=process.env.ADMIN_LOGIN||process.env.ADMIN_USERNAME||'shoply';const password=process.env.ADMIN_PASSWORD||'24001214';
       const ip=String(req.socket.remoteAddress||'unknown');const now=Date.now();const prev=loginAttempts.get(ip)||{count:0,at:now};if(now-prev.at>10*60*1000){prev.count=0;prev.at=now}if(prev.count>=10)return send(res,429,{ok:false,error:'Too many attempts'});
       const ok=String(b.login||'').trim()===login && String(b.password||'')===password; if(!ok){prev.count++;loginAttempts.set(ip,prev);return send(res,200,{ok:false})}loginAttempts.delete(ip);
       const stamp=String(Date.now()),token=stamp+'.'+signSession(stamp);res.setHeader('Set-Cookie',`shoply_admin=${encodeURIComponent(token)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=43200${process.env.NODE_ENV==='production'?'; Secure':''}`);
