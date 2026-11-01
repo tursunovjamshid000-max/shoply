@@ -1,22 +1,19 @@
-SHOPLY — BARQAROR VA TEZROQ VERSIYA
+SHOPLY ANDROID APK LOYIHASI
 
-1) GitHub repository rootiga ZIP ichidagi index.html, admin.html, server.js, package.json va SUPABASE.sql fayllarini joylang.
-2) Render Build Command: npm install
-3) Render Start Command: node server.js
-4) Render Environment Variables:
-   SUPABASE_URL = mavjud Supabase Project URL
-   SUPABASE_SERVICE_ROLE_KEY = Supabase service_role key (faqat Render serverida)
-   ADMIN_LOGIN = shoply
-   ADMIN_PASSWORD = 24001214
-5) Supabase SQL Editor'da SUPABASE.sql ni bir marta ishga tushiring.
-6) Render deploy tugagach /api/health manzilida database: configured ko'rinishi kerak.
+Bu loyiha SHOPLY saytingizni Android ilovasi ichida ochadi.
+Sayt manzili: https://shoply-912z.onrender.com/
+Ilova ID: uz.shoply.app
 
-MUHIM:
-- Eski Supabase jadvalidagi yozuvlar o'chirilmaydi. Server faqat mavjud key/value yozuvlarini o'qiydi va yangilaydi.
-- /api/state/:key uchun DELETE ataylab o'chirilgan. Admin interfeysi kolleksiyani yangilangan qiymat bilan PUT qiladi.
-- Savatcha Telegram user ID asosida brauzerning o'zida ajratilgan; u umumiy do'kon bazasiga yozilmaydi.
-- Mahsulotlar, bannerlar, sozlamalar, sharhlar, promo-kodlar va buyurtmalar Supabase shoply_data jadvalida saqlanadi.
-- offline.js endi sahifalarda ulanmagan: u API so'rovlarini localStorage bilan almashtirib, qurilmalararo sinxronlashga xalaqit berishi mumkin edi.
-- Admin panel doimiy 3 soniyalik polling qilmaydi; ma'lumot faqat sahifa ochilganda olinadi va o'zgarish saqlanganda yuboriladi.
+APK YASASH (bepul):
+1. Ushbu papkani GitHub'da yangi repository'ga yuklang.
+2. Repository -> Actions bo'limiga o'ting.
+3. "Build SHOPLY APK" workflow'ni tanlang.
+4. Run workflow tugmasini bosing.
+5. Build tugagach, SHOPLY-APK artifact'ini yuklab oling.
+6. ZIP ichidan app-debug.apk faylini Android telefonga yuboring va o'rnating.
 
-Agar /api/health database: missing desa, Render environment variables noto'g'ri yoki yo'q. Service role keyni hech qachon frontend fayliga qo'ymang.
+ESLATMA:
+- Bu hozircha debug APK; Google Play uchun mo'ljallangan release-signing emas.
+- APK saytdagi jonli kontentni ochadi; mahsulotlar/buyurtmalar mavjud server va Supabase'dan keladi.
+- Sayt URL'i o'zgarsa MainActivity.java ichidagi HOME va HOST qiymatlarini yangilang.
+- Ilova internet talab qiladi.
