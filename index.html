@@ -163,6 +163,43 @@ html,body{width:100%;max-width:100%;overflow-x:hidden!important;margin:0}
 .main{min-width:0;max-width:100%;box-sizing:border-box}
 .products{min-width:0;max-width:100%}
 @media(max-width:700px){.sidebar{position:fixed!important;top:0!important;bottom:0!important;left:0!important;right:auto!important;height:100dvh!important;max-height:100dvh!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain;z-index:1200!important}.main{width:100%!important;margin-left:0!important;padding-left:12px!important;padding-right:12px!important;box-sizing:border-box!important}.layout{display:block!important;width:100vw!important;overflow-x:clip!important}}
+
+/* SHOPLY premium product detail */
+#productModal{padding:22px}
+#productModal .product-detail-modal{position:relative;width:min(940px,100%);max-height:92vh;padding:0;overflow:auto;border-radius:22px}
+#productModal .modal-head{position:sticky;top:0;z-index:4;padding:15px 20px;background:var(--card);border-bottom:1px solid var(--line)}
+#productModal .modal-head h2{font-size:17px;font-weight:750}
+#productModal .product-detail-layout{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(300px,.95fr);gap:28px;padding:22px}
+#productModal .detail-gallery{min-width:0}
+#productModal .detail-hero{height:440px;display:flex;align-items:center;justify-content:center;background:var(--bg);border-radius:17px;overflow:hidden;padding:18px}
+#productModal .detail-hero img{width:100%;height:100%;object-fit:contain}
+#productModal .detail-info{display:flex;flex-direction:column;align-items:stretch;min-width:0;padding:5px 2px}
+#productModal .detail-category{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+#productModal .detail-name{font-size:25px;line-height:1.2;margin:9px 0 12px}
+#productModal .detail-rating{font-size:13px;color:#d69b20;margin-bottom:15px}
+#productModal .detail-price{font-size:27px;font-weight:800;margin:0 0 14px}
+#productModal .detail-description{font-size:14px;line-height:1.7;color:var(--muted);margin:0 0 18px}
+#productModal .detail-label{font-size:13px;font-weight:750;margin:12px 0 0}
+#productModal .detail-actions{display:flex;gap:9px;margin-top:auto;padding-top:18px}
+#productModal .detail-actions .primary{flex:1;min-height:48px;border-radius:12px}
+#productModal .detail-fav{width:48px;min-width:48px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);font-size:22px}
+#productModal .detail-fav.saved{color:#ef6262}
+#productModal .gallery-thumbs{gap:9px;margin-top:12px}
+#productModal .gallery-thumbs button{width:70px;height:70px;flex-basis:70px;border-radius:11px;background:var(--card)}
+#productModal .gallery-thumbs button.active{border:2px solid var(--ink)}
+#productModal .option-chip{border-radius:10px;padding:9px 14px}
+#productModal .review-trigger{align-self:flex-start;border:0;background:transparent;color:var(--muted);padding:12px 0;text-decoration:underline;text-underline-offset:3px}
+@media(max-width:680px){
+ #productModal{padding:8px}
+ #productModal .product-detail-modal{max-height:95vh;border-radius:18px}
+ #productModal .modal-head{padding:12px 15px}
+ #productModal .product-detail-layout{grid-template-columns:1fr;gap:17px;padding:14px}
+ #productModal .detail-hero{height:min(54vw,340px);min-height:220px;padding:12px}
+ #productModal .detail-name{font-size:21px}
+ #productModal .detail-price{font-size:24px}
+ #productModal .detail-actions{position:sticky;bottom:0;background:var(--card);padding:12px 0 3px}
+}
+
 </style>
 </head>
 <body data-theme="light">
@@ -225,10 +262,10 @@ html,body{width:100%;max-width:100%;overflow-x:hidden!important;margin:0}
 
 <div class="modal-bg" id="cartModal"><div class="modal cart-modal"><div class="modal-head"><h2>Savatingiz</h2><button class="close" data-close="cartModal">✕</button></div><div id="cartBody"></div><div class="promo-area"><input class="field" id="promoInput" maxlength="40" placeholder="Promo-kodni kiriting"><button class="primary" id="applyPromo">Qo‘llash</button><p class="promo-status muted" id="promoStatus"></p></div><div id="cartTotal" class="cart-summary"></div><button class="primary" id="checkoutBtn" style="width:100%">Buyurtmani Telegram orqali yuborish</button></div></div>
 <div class="modal-bg" id="checkoutModal"><div class="modal"><div class="modal-head"><h2>Buyurtma berish</h2><button class="close" data-close="checkoutModal">✕</button></div><p class="muted">Ma’lumotlaringizni kiriting. Buyurtma Telegram orqali @B_k_i_n ga yuborish uchun tayyorlanadi.</p><label>Ismingiz</label><input class="field" id="orderName" maxlength="100" placeholder="Ism familiya" required><label>Telefon raqamingiz</label><input class="field" id="orderPhone" maxlength="30" placeholder="+998 90 123 45 67" required><label>Manzil (ixtiyoriy)</label><textarea class="field" id="orderAddress" rows="2" maxlength="300" placeholder="Yetkazib berish manzili"></textarea><button class="primary" id="confirmOrder" style="width:100%">Buyurtmani tasdiqlash</button><p id="orderStatus" class="muted" role="status"></p></div></div>
-<div class="modal-bg" id="productModal"><div class="modal"><div class="modal-head"><h2 id="detailTitle">Mahsulot</h2><button class="close" data-close="productModal">✕</button></div><div id="detailBody"></div></div></div>
+<div class="modal-bg" id="productModal"><div class="modal product-detail-modal"><div class="modal-head"><h2 id="detailTitle">Mahsulot</h2><button class="close" data-close="productModal">✕</button></div><div id="detailBody"></div></div></div>
 <div class="modal-bg" id="reviewModal"><div class="modal"><div class="modal-head"><h2 id="reviewTitle">Mahsulot sharhlari</h2><button class="close" data-close="reviewModal">✕</button></div><div id="reviewList"></div><hr style="border:0;border-top:1px solid var(--line);margin:16px 0"><h3>Sharh qoldirish</h3><input class="field" id="reviewName" maxlength="60" placeholder="Ismingiz"><select class="field" id="reviewRating"><option value="5">★★★★★ — 5</option><option value="4">★★★★☆ — 4</option><option value="3">★★★☆☆ — 3</option><option value="2">★★☆☆☆ — 2</option><option value="1">★☆☆☆☆ — 1</option></select><textarea class="field" id="reviewText" rows="3" maxlength="700" placeholder="Mahsulot haqida fikringiz..."></textarea><button class="primary" id="sendReview" style="width:100%">Sharhni yuborish</button><p class="muted" id="reviewStatus"></p></div></div>
 <div class="modal-bg" id="profileModal"><div class="modal"><div class="modal-head"><h2>Profilim</h2><button class="close" data-close="profileModal">✕</button></div><label>Ismingiz</label><input class="field" id="profileName" placeholder="Ismingiz"><label>Telefon raqamingiz</label><input class="field" id="profilePhone" placeholder="+998..."><button class="primary" id="saveProfile" style="width:100%">Saqlash</button></div></div>
-<div class="modal-bg" id="settingsModal"><div class="modal"><div class="modal-head"><h2>Sozlamalar</h2><button class="close" data-close="settingsModal">✕</button></div><label>Ko‘rinish</label><select class="field" id="themeSelect"><option value="light">Yorug‘ rejim</option><option value="dark">Qorong‘i rejim</option></select><p class="muted" style="font-size:12px">Tanlangan ko‘rinish ushbu qurilmada saqlanadi.</p><a class="primary" id="downloadAppBtn" href="https://github.com/tursunovjamshid000-max/shoply/releases/latest/download/app-debug.apk" download style="display:block;text-align:center;text-decoration:none;width:100%;box-sizing:border-box;margin:12px 0">SHOPLY ilovasini yuklab olish</a><button class="primary" id="saveSettings" style="width:100%">Saqlash</button></div></div>
+<div class="modal-bg" id="settingsModal"><div class="modal"><div class="modal-head"><h2>Sozlamalar</h2><button class="close" data-close="settingsModal">✕</button></div><label>Ko‘rinish</label><select class="field" id="themeSelect"><option value="light">Yorug‘ rejim</option><option value="dark">Qorong‘i rejim</option></select><p class="muted" style="font-size:12px">Tanlangan ko‘rinish ushbu qurilmada saqlanadi.</p><button class="primary" id="saveSettings" style="width:100%">Saqlash</button></div></div>
 
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
@@ -294,7 +331,41 @@ $('cartBtn').onclick=()=>{renderCart();openModal('cartModal')};
 $('checkoutBtn').onclick=()=>{$('orderName').value='';$('orderPhone').value='';$('orderAddress').value='';$('orderStatus').textContent='';closeModal('cartModal');openModal('checkoutModal')};
 $('confirmOrder').onclick=()=>{const name=$('orderName').value.trim(),phone=$('orderPhone').value.trim(),address=$('orderAddress').value.trim();const items=Object.entries(cart).filter(([id,q])=>Number(q)>0).map(([id,q])=>{const p=products.find(x=>String(x.id)===String(id));return p?{productId:id,name:p.name,price:Number(p.price),quantity:Number(q),...(read('shoply_cart_options_v1',{})[id]||{})}:null}).filter(Boolean);if(!name||!phone||!items.length){$('orderStatus').textContent='Ism, telefon va savatdagi mahsulotlar kerak.';return}const subtotal=items.reduce((sum,x)=>sum+x.price*x.quantity,0);const sums=calcCart();const total=sums.total;const lines=items.map((x,i)=>`${i+1}. ${x.name} — ${x.quantity} dona × ${money(x.price)} = ${money(x.price*x.quantity)}${x.color?' | Rang: '+x.color:''}${x.size?' | Hajm/Razmer: '+x.size:''}`).join('\n');const message=`🛍 SHOPLY — YANGI BUYURTMA\n\n👤 Ism: ${name}\n📞 Telefon: ${phone}\n📍 Manzil: ${address||'Ko‘rsatilmagan'}\n\n📦 Mahsulotlar:\n${lines}\n\nMahsulotlar: ${money(subtotal)}\n${sums.promo?`Promo-kod: ${sums.promo.code} (${sums.promo.percent}%)\nChegirma: -${money(sums.discount)}\n`:''}\n💳 Jami: ${money(total)}\n\nMijoz buyurtmani rasmiylashtirdi.`;const url='https://t.me/B_k_i_n?text='+encodeURIComponent(message);window.open(url,'_blank','noopener');$('orderStatus').textContent='Telegramda @B_k_i_n chati ochiladi. Xabar tayyor turadi — yuborish uchun Telegramdagi Send tugmasini bosing.';};
 let activeReviewProduct='';let reviewCache={};
-function openProductDetail(id){const p=products.find(x=>String(x.id)===String(id));if(!p)return;const imgs=productImages(p);if(!imgs.length)imgs.push('https://placehold.co/800x800/f0f1eb/777?text=SHOPLY');let current=0;let selectedSize='',selectedColor='';$('detailTitle').textContent=p.name;const draw=()=>{$('detailBody').innerHTML=`<img id="detailMainImage" src="${esc(imgs[current])}" style="width:100%;height:min(55vh,390px);object-fit:contain;border-radius:13px;background:var(--bg);padding:8px">${imgs.length>1?`<div class="gallery-thumbs">${imgs.map((u,i)=>`<button data-gallery="${i}" class="${i===current?'active':''}"><img src="${esc(u)}" alt="Rasm ${i+1}"></button>`).join('')}</div>`:''}<p class="muted">${esc(p.cat||'')}</p><h2 style="margin:5px 0">${money(p.price)}</h2><p>${esc(p.description||'Mahsulot haqida qo‘shimcha ma’lumot mavjud emas.')}</p>${(Array.isArray(p.colors)&&p.colors.length)?`<b>Rangni tanlang</b><div class="option-row">${p.colors.map(c=>`<button class="option-chip ${selectedColor===c?'selected':''}" data-color="${esc(c)}">${esc(c)}</button>`).join('')}</div>`:''}${(Array.isArray(p.sizes)&&p.sizes.length)?`<b>Razmerni tanlang</b><div class="option-row">${p.sizes.map(z=>`<button class="option-chip ${selectedSize===z?'selected':''}" data-size="${esc(z)}">${esc(z)}</button>`).join('')}</div>`:''}<button class="primary" id="detailAdd" style="width:100%;margin-top:10px">＋ Savatga qo‘shish</button><button class="review-trigger" id="detailReviews" style="margin-top:10px">Sharhlar · ${ (reviewCache[String(id)]||[]).length } ta · ${'★'.repeat(Math.round(Number(p.rating)||0))}</button>`;$('detailBody').querySelectorAll('[data-gallery]').forEach(b=>b.onclick=()=>{current=Number(b.dataset.gallery);draw()});$('detailBody').querySelectorAll('[data-color]').forEach(b=>b.onclick=()=>{selectedColor=b.dataset.color;draw()});$('detailBody').querySelectorAll('[data-size]').forEach(b=>b.onclick=()=>{selectedSize=b.dataset.size;draw()});$('detailAdd').onclick=()=>{if((Array.isArray(p.colors)&&p.colors.length&&!selectedColor)||(Array.isArray(p.sizes)&&p.sizes.length&&!selectedSize)){alert('Iltimos, mahsulot rangini va razmerini tanlang.');return}addToCart(id,{size:selectedSize,color:selectedColor});closeModal('productModal')};$('detailReviews').onclick=()=>openReviews(id)};draw();openModal('productModal')}
+function openProductDetail(id){
+ const p=products.find(x=>String(x.id)===String(id));if(!p)return;
+ const imgs=productImages(p);if(!imgs.length)imgs.push('https://placehold.co/800x800/f0f1eb/777?text=SHOPLY');
+ let current=0,selectedSize='',selectedColor='';
+ const isFav=()=>favorites.some(x=>String(x)===String(id));
+ $('detailTitle').textContent=p.name;
+ const draw=()=>{
+  const reviews=reviewCache[String(id)]||[];
+  const avg=reviews.length?(reviews.reduce((a,x)=>a+(Number(x.rating)||5),0)/reviews.length).toFixed(1):(p.rating||'Yangi');
+  $('detailBody').innerHTML=`<div class="product-detail-layout">
+   <div class="detail-gallery">
+    <div class="detail-hero"><img id="detailMainImage" src="${esc(imgs[current])}" alt="${esc(p.name)}" onerror="this.src='https://placehold.co/800x800/f0f1eb/777?text=SHOPLY'"></div>
+    ${imgs.length>1?`<div class="gallery-thumbs">${imgs.map((u,i)=>`<button type="button" data-gallery="${i}" class="${i===current?'active':''}"><img src="${esc(u)}" alt="Rasm ${i+1}"></button>`).join('')}</div>`:''}
+   </div>
+   <div class="detail-info">
+    <span class="detail-category">${esc(p.cat||'SHOPLY')}</span>
+    <h2 class="detail-name">${esc(p.name)}</h2>
+    <div class="detail-rating">★ ${esc(avg)} <span style="color:var(--muted)">· ${reviews.length} ta sharh</span></div>
+    <div class="detail-price">${money(p.price)}</div>
+    <p class="detail-description">${esc(p.description||'Mahsulot haqida qo‘shimcha ma’lumot mavjud emas.')}</p>
+    ${(Array.isArray(p.colors)&&p.colors.length)?`<div class="detail-label">Rangni tanlang</div><div class="option-row">${p.colors.map(c=>`<button type="button" class="option-chip ${selectedColor===c?'selected':''}" data-color="${esc(c)}">${esc(c)}</button>`).join('')}</div>`:''}
+    ${(Array.isArray(p.sizes)&&p.sizes.length)?`<div class="detail-label">Razmerni tanlang</div><div class="option-row">${p.sizes.map(z=>`<button type="button" class="option-chip ${selectedSize===z?'selected':''}" data-size="${esc(z)}">${esc(z)}</button>`).join('')}</div>`:''}
+    <div class="detail-actions"><button type="button" class="detail-fav ${isFav()?'saved':''}" id="detailFav" aria-label="Sevimlilarga qo‘shish">${isFav()?'♥':'♡'}</button><button type="button" class="primary" id="detailAdd">＋ Savatga qo‘shish</button></div>
+    <button type="button" class="review-trigger" id="detailReviews">Mahsulot sharhlari · ${reviews.length} ta →</button>
+   </div>
+  </div>`;
+  $('detailBody').querySelectorAll('[data-gallery]').forEach(b=>b.onclick=()=>{current=Number(b.dataset.gallery);draw()});
+  $('detailBody').querySelectorAll('[data-color]').forEach(b=>b.onclick=()=>{selectedColor=b.dataset.color;draw()});
+  $('detailBody').querySelectorAll('[data-size]').forEach(b=>b.onclick=()=>{selectedSize=b.dataset.size;draw()});
+  $('detailFav').onclick=()=>{toggleFav(id);draw()};
+  $('detailAdd').onclick=()=>{if((Array.isArray(p.colors)&&p.colors.length&&!selectedColor)||(Array.isArray(p.sizes)&&p.sizes.length&&!selectedSize)){alert('Iltimos, mahsulot rangini va razmerini tanlang.');return}addToCart(id,{size:selectedSize,color:selectedColor});closeModal('productModal')};
+  $('detailReviews').onclick=()=>openReviews(id);
+ };
+ draw();openModal('productModal');
+}
 async function openReviews(id){activeReviewProduct=String(id);const p=products.find(x=>String(x.id)===activeReviewProduct);$('reviewTitle').textContent=(p?.name||'Mahsulot')+' — sharhlar';$('reviewList').innerHTML='<p class="muted">Yuklanmoqda...</p>';openModal('reviewModal');try{const r=await fetch('/api/state/shoply_reviews_v1');const d=await r.json();const list=d.value?.[activeReviewProduct]||[];reviewCache[activeReviewProduct]=list;renderProducts();$('reviewList').innerHTML=list.length?list.slice().reverse().map(v=>`<div style="padding:10px 0;border-bottom:1px solid var(--line)"><b>${esc(v.name||'Xaridor')}</b><div style="color:#d69b20">${'★'.repeat(Number(v.rating)||5)}${'☆'.repeat(5-(Number(v.rating)||5))}</div><p style="margin:5px 0">${esc(v.text)}</p><small class="muted">${esc(v.createdAt||'')}</small></div>`).join(''):'<p class="muted">Hozircha sharh yo‘q. Birinchi bo‘lib fikr bildiring.</p>'}catch{$('reviewList').innerHTML='<p class="muted">Sharhlarni yuklab bo‘lmadi.</p>'}}
 $('sendReview').onclick=async()=>{const text=$('reviewText').value.trim();if(!text){$('reviewStatus').textContent='Sharh matnini yozing.';return}try{const r=await fetch('/api/reviews',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({productId:activeReviewProduct,review:{name:$('reviewName').value.trim()||'Xaridor',rating:Number($('reviewRating').value),text,createdAt:new Date().toLocaleString('uz-UZ')}})});if(!r.ok)throw new Error();$('reviewText').value='';$('reviewStatus').textContent='Sharhingiz saqlandi.';openReviews(activeReviewProduct)}catch{$('reviewStatus').textContent='Sharh saqlanmadi. Keyinroq urinib ko‘ring.'}};
 let searchTimer; $('search').addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(renderProducts,120)});
