@@ -2,15 +2,8 @@
   "name": "shoply-stable-store",
   "version": "2.0.0",
   "private": true,
-  "description": "SHOPLY store with secure nasiya applications, admin approval, email OTP and optional Eskiz SMS",
+  "description": "SHOPLY store with Supabase persistence and isolated client carts",
   "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
-  "engines": {
-    "node": ">=18"
-  },
-  "dependencies": {
-    "nodemailer": "^6.10.1"
-  }
+  "scripts": {"start": "node server.js"},
+  "engines": {"node": ">=18"}
 }
