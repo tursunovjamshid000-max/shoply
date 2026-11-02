@@ -159,18 +159,6 @@ th{color:var(--muted);font-size:11px}
   .main{padding-bottom:30px!important}
 }
 
-
-.seller-admin-list{display:flex;flex-direction:column;gap:8px;max-height:48vh;overflow-y:auto;padding-right:4px}
-.seller-admin-card{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--line);border-radius:13px;cursor:pointer;background:var(--card)}
-.seller-admin-card img{width:42px;height:42px;object-fit:cover;border-radius:12px;background:#eef1e8}
-.seller-admin-card .meta{min-width:0;flex:1}.seller-admin-card .meta b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.seller-detail-section{padding:12px;border:1px solid var(--line);border-radius:12px;margin:10px 0}
-.seller-detail-products{display:flex;flex-direction:column;gap:7px;max-height:34vh;overflow:auto}
-.seller-detail-product{display:flex;gap:9px;align-items:center;padding:7px;background:var(--bg);border-radius:10px}
-.seller-detail-product img{width:48px;height:48px;object-fit:cover;border-radius:8px}
-.seller-full-text{font-size:13px;line-height:1.5;color:var(--muted);white-space:pre-wrap}
-.seller-more{border:0;background:transparent;color:#5e8c16;font-weight:800;padding:4px 0;cursor:pointer}
-@media(max-width:650px){.seller-admin-list{max-height:40vh}.seller-admin-card{padding:8px}}
 </style>
 
 <style id="shoply-final-layout-fix">
@@ -240,7 +228,7 @@ html,body{max-width:100%;overflow-x:hidden!important}
   <button class="nav active" data-section="dashboard">▦ Boshqaruv</button>
   <button class="nav" data-section="products">□ Mahsulotlar</button>
   <button class="nav" data-section="cart">🛒 Savat statistikasi</button>
-  <button class="nav" data-section="orders">📦 Buyurtmalar</button>\n  <button class="nav" data-section="sellerApps">🧑‍💼 Tadbirkorlar</button>
+  <button class="nav" data-section="orders">📦 Buyurtmalar</button>
   <button class="nav" data-section="reviews">⭐ Sharhlar</button>
   <button class="nav" data-section="banners">▧ Bannerlar</button>
   <button class="nav" data-section="settings">⚙ Sozlamalar</button>
@@ -336,11 +324,6 @@ html,body{max-width:100%;overflow-x:hidden!important}
   </div>
   <div class="panel"><div class="toolbar"><h2>Buyurtmalar ro‘yxati</h2><button class="secondary" id="refreshOrders">↻ Yangilash</button></div><div class="table-wrap"><table><thead><tr><th>Buyurtma</th><th>Xaridor</th><th>Mahsulotlar</th><th>Jami</th><th>Sana</th><th>Holat</th></tr></thead><tbody id="ordersRows"><tr><td colspan="6">Yuklanmoqda...</td></tr></tbody></table></div></div>
 </section>
-<section class="section" id="sellerApps">
- <div class="panel"><div class="toolbar"><h2>Yangi arizalar</h2><button class="secondary" id="refreshSellerApps">Yangilash</button></div><div id="sellerApplicationCards" class="seller-admin-list"></div></div>
- <div class="panel" style="margin-top:15px"><h2>Tasdiqlangan tadbirkorlar</h2><div id="approvedSellerCards" class="seller-admin-list"></div></div>
-</section>
-<div class="modal-bg" id="sellerDetailModal"><div class="modal" style="width:min(620px,94vw);max-height:88dvh;overflow:auto"><div class="modal-head"><h2 id="sellerDetailTitle">Tadbirkor</h2><button class="close" data-close="sellerDetailModal">✕</button></div><div id="sellerDetailBody"></div></div></div>
 <section class="section" id="reviews">
   <div class="stats"><div class="stat"><div class="stat-label">Jami sharhlar</div><div class="stat-value" id="reviewsTotal">0</div><div class="stat-note">Xaridorlar fikri</div></div><div class="stat"><div class="stat-label">O‘rtacha baho</div><div class="stat-value" id="reviewsAverage">—</div><div class="stat-note">5 ballik tizim</div></div></div>
   <div class="panel"><div class="toolbar"><h2>Mahsulot sharhlari</h2><button class="secondary" id="refreshReviews">↻ Yangilash</button></div><div id="reviewsList"></div></div>
@@ -448,8 +431,7 @@ html,body{max-width:100%;overflow-x:hidden!important}
   const sharedKeys = new Set([
     'mono_store_products_v2','mono_store_settings_v2','mono_store_slides_v2',
     'mono_store_cart_events_v1','shoply_reviews_v1','shoply_orders_v1',
-    'mono_store_admin_profile_v1','shoply_site_builder_v1','shoply_promo_codes_v1',
-    'shoply_seller_applications_v1','shoply_sellers_v1','shoply_seller_products_v1','shoply_seller_debts_v1'
+    'mono_store_admin_profile_v1','shoply_site_builder_v1','shoply_promo_codes_v1'
   ]);
   const nativeGet=Storage.prototype.getItem, nativeSet=Storage.prototype.setItem, nativeRemove=Storage.prototype.removeItem;
   const pending=new Map();
@@ -548,34 +530,6 @@ function esc(v){
  return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 function sumMoney(n){return new Intl.NumberFormat('uz-UZ').format(Number(n)||0)+' so‘m'}
-function sellerState(k){try{return JSON.parse(localStorage.getItem(k)||'[]')}catch{return []}}
-function saveSellerState(k,v){localStorage.setItem(k,JSON.stringify(v));try{fetch('/api/state/'+encodeURIComponent(k),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({value:v})}).catch(()=>{})}catch(e){}}
-function renderSellerAdmin(){
- const apps=sellerState('shoply_seller_applications_v1'), sellers=sellerState('shoply_sellers_v1'), prods=sellerState('shoply_seller_products_v1'), debts=sellerState('shoply_seller_debts_v1');
- const appBox=$('sellerApplicationCards'), sellerBox=$('approvedSellerCards');
- if(appBox)appBox.innerHTML=apps.filter(x=>x.status==='pending').map(x=>`<div class="seller-admin-card"><img src="${esc(x.photo||'')}" alt=""><div class="meta"><b>${esc(x.name)}</b><small>${esc(x.telegram)}</small></div><button class="primary" data-seller-detail-app="${esc(x.id)}">Ko‘rish</button></div>`).join('')||'<p class="muted">Yangi arizalar yo‘q.</p>';
- if(sellerBox)sellerBox.innerHTML=sellers.filter(x=>x.status==='approved').map(x=>`<div class="seller-admin-card" data-seller-open="${esc(x.telegramId)}"><img src="${esc(x.photo||x.logo||'')}" alt=""><div class="meta"><b>${esc(x.name)}</b><small>${esc(x.telegram)}</small></div><span>›</span></div>`).join('')||'<p class="muted">Tasdiqlangan tadbirkorlar yo‘q.</p>';
-}
-function showSellerDetail(id,isApp){
- const data=sellerState(isApp?'shoply_seller_applications_v1':'shoply_sellers_v1'),x=data.find(y=>String(y.id)===String(id)||String(y.telegramId)===String(id));if(!x)return;
- const prods=sellerState('shoply_seller_products_v1').filter(p=>String(p.sellerId)===String(x.telegramId)),debts=sellerState('shoply_seller_debts_v1').filter(d=>String(d.sellerId)===String(x.telegramId)),debt=debts.reduce((n,d)=>n+Number(d.amount||0),0);
- $('sellerDetailTitle').textContent=x.name||'Tadbirkor';
- $('sellerDetailBody').innerHTML=`<div class="seller-detail-section"><div style="display:flex;gap:12px;align-items:center"><img src="${esc(x.photo||'')}" style="width:66px;height:66px;border-radius:16px;object-fit:cover"><img src="${esc(x.logo||'')}" style="width:54px;height:54px;border-radius:13px;object-fit:cover"><div><b>${esc(x.name)}</b><div>${esc(x.telegram)}</div></div></div><p>Telefon: ${esc(x.phone||'—')}</p><p>Gmail: ${esc(x.email||'—')}</p><p>Telegram: ${esc(x.telegram||'—')}</p><p>Faoliyati: ${esc(x.about||'—')}</p><p>Ariza vaqti: ${esc(x.createdAt||'—')}</p><p>Jami mahsulot: ${prods.length}</p><p><b>Qarzdorligi: ${sumMoney(debt)}</b></p></div>
- ${isApp?`<button class="primary" data-approve-app="${esc(x.id)}">Arizani tasdiqlash</button> <button class="danger" data-reject-app="${esc(x.id)}">Rad etish</button>`:`<div class="seller-detail-section"><b>Kategoriyalar bo‘yicha mahsulotlar</b><div class="seller-detail-products">${prods.map(p=>`<div class="seller-detail-product"><img src="${esc(p.image||'')}" alt=""><div style="flex:1"><b>${esc(p.name)}</b><div>${sumMoney(p.price)} · ${esc(p.cat)}</div><button class="seller-more" data-admin-full="${esc(p.id)}">To‘liq ma’lumot</button></div><button class="danger" data-admin-remove-product="${esc(p.id)}">O‘chirish</button></div>`).join('')||'<p>Mahsulotlar yo‘q.</p>'}</div></div><button class="danger" data-revoke-seller="${esc(x.telegramId)}">Ruxsatni bekor qilish</button>`}`;
- $('sellerDetailModal').classList.add('show');
-}
-$('refreshSellerApps')?.addEventListener('click',renderSellerAdmin);
-$('sellerApplicationCards')?.addEventListener('click',e=>{const b=e.target.closest('[data-seller-detail-app]');if(b)showSellerDetail(b.dataset.sellerDetailApp,true)});
-$('approvedSellerCards')?.addEventListener('click',e=>{const b=e.target.closest('[data-seller-open]');if(b)showSellerDetail(b.dataset.sellerOpen,false)});
-$('sellerDetailBody')?.addEventListener('click',e=>{
- const ok=e.target.closest('[data-approve-app]'),no=e.target.closest('[data-reject-app]'),rev=e.target.closest('[data-revoke-seller]'),del=e.target.closest('[data-admin-remove-product]'),full=e.target.closest('[data-admin-full]');
- if(ok||no){const id=(ok||no).dataset.approveApp||(no&&no.dataset.rejectApp),apps=sellerState('shoply_seller_applications_v1'),app=apps.find(x=>x.id===id);if(!app)return;app.status=ok?'approved':'rejected';saveSellerState('shoply_seller_applications_v1',apps);const sellers=sellerState('shoply_sellers_v1').filter(x=>String(x.telegramId)!==String(app.telegramId));if(ok)sellers.push({...app,status:'approved',approvedAt:new Date().toISOString()});saveSellerState('shoply_sellers_v1',sellers);$('sellerDetailModal').classList.remove('show');renderSellerAdmin();}
- if(rev){const tid=rev.dataset.revokeSeller;saveSellerState('shoply_sellers_v1',sellerState('shoply_sellers_v1').filter(x=>String(x.telegramId)!==String(tid)));saveSellerState('shoply_seller_products_v1',sellerState('shoply_seller_products_v1').filter(x=>String(x.sellerId)!==String(tid)));save(PRODUCT_KEY,readArray(PRODUCT_KEY,[]).filter(p=>String(p.sellerId)!==String(tid)));$('sellerDetailModal').classList.remove('show');renderSellerAdmin();alert('Tadbirkor ruxsati bekor qilindi va uning mahsulotlari o‘chirildi.');}
- if(del){saveSellerState('shoply_seller_products_v1',sellerState('shoply_seller_products_v1').filter(x=>String(x.id)!==String(del.dataset.adminRemoveProduct)));save(PRODUCT_KEY,readArray(PRODUCT_KEY,[]).filter(p=>String(p.id)!==String(del.dataset.adminRemoveProduct)));renderSellerAdmin();$('sellerDetailModal').classList.remove('show');}
- if(full){const p=sellerState('shoply_seller_products_v1').find(x=>String(x.id)===String(full.dataset.adminFull));if(p){const d=document.createElement('div');d.className='seller-detail-section';d.innerHTML=`<b>${esc(p.name)}</b><p class="seller-full-text">${esc(p.description||'')}</p>`;full.parentElement.appendChild(d);full.remove();}}
-});
-renderSellerAdmin();
-
 function todayKey(date=new Date()){
  return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
 }
