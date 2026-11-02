@@ -20,3 +20,11 @@ MUHIM:
 - Admin panel doimiy 3 soniyalik polling qilmaydi; ma'lumot faqat sahifa ochilganda olinadi va o'zgarish saqlanganda yuboriladi.
 
 Agar /api/health database: missing desa, Render environment variables noto'g'ri yoki yo'q. Service role keyni hech qachon frontend fayliga qo'ymang.
+
+YANGI PROFIL VA MOBIL HEADER YANGILANISHI
+- Profil oynasi qayta dizayn qilindi: shaxsiy rasm, alohida profil logosi, ism-familiya, telefon, email va Telegram username.
+- Shaxsiy rasm va profil logosi URL emas, telefon/kompyuter galereyasidan tanlanadi.
+- Profilni saqlash uchun barcha maydonlar va ikkala rasm majburiy.
+- Admin panel > Sozlamalar > Sayt dizayni bo‘limida umumiy profil logosi yuklanadi. Foydalanuvchi o‘z logotipini tanlamagan bo‘lsa, shu logo ko‘rsatiladi.
+- Do‘kon yuqori paneli (menyu, qidiruv, sevimlilar, savat) sahifa pastga aylantirilganda yuqorida yopishib turadi; mobil ko‘rinish ham moslashtirildi.
+- Profil ma’lumotlari hozircha Telegram foydalanuvchisining shu qurilmadagi brauzer xotirasida saqlanadi.
