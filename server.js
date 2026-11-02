@@ -10,7 +10,8 @@ const ROOT = __dirname;
 const ALLOWED = new Set([
   'mono_store_products_v2','mono_store_settings_v2','mono_store_slides_v2',
   'mono_store_cart_events_v1','shoply_orders_v1','shoply_reviews_v1',
-  'mono_store_admin_profile_v1','shoply_site_builder_v1','shoply_promo_codes_v1'
+  'mono_store_admin_profile_v1','shoply_site_builder_v1','shoply_promo_codes_v1',
+  'shoply_seller_applications_v1','shoply_sellers_v1','shoply_seller_products_v1','shoply_seller_debts_v1'
 ]);
 const mime = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.ico':'image/x-icon'};
 function send(res,status,data,type='application/json; charset=utf-8') { res.writeHead(status,{'Content-Type':type,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}); res.end(type.startsWith('application/json')?JSON.stringify(data):data); }

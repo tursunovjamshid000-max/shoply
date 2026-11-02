@@ -228,7 +228,7 @@ html,body{max-width:100%;overflow-x:hidden!important}
   <button class="nav active" data-section="dashboard">▦ Boshqaruv</button>
   <button class="nav" data-section="products">□ Mahsulotlar</button>
   <button class="nav" data-section="cart">🛒 Savat statistikasi</button>
-  <button class="nav" data-section="orders">📦 Buyurtmalar</button>
+  <button class="nav" data-section="orders">📦 Buyurtmalar</button>\n  <button class="nav" data-section="sellerApps">🧑‍💼 Tadbirkorlar</button>
   <button class="nav" data-section="reviews">⭐ Sharhlar</button>
   <button class="nav" data-section="banners">▧ Bannerlar</button>
   <button class="nav" data-section="settings">⚙ Sozlamalar</button>
@@ -324,6 +324,10 @@ html,body{max-width:100%;overflow-x:hidden!important}
   </div>
   <div class="panel"><div class="toolbar"><h2>Buyurtmalar ro‘yxati</h2><button class="secondary" id="refreshOrders">↻ Yangilash</button></div><div class="table-wrap"><table><thead><tr><th>Buyurtma</th><th>Xaridor</th><th>Mahsulotlar</th><th>Jami</th><th>Sana</th><th>Holat</th></tr></thead><tbody id="ordersRows"><tr><td colspan="6">Yuklanmoqda...</td></tr></tbody></table></div></div>
 </section>
+<section class="section" id="sellerApps">
+ <div class="panel"><div class="toolbar"><h2>Tadbirkorlik arizalari</h2><button class="secondary" id="refreshSellerApps">Yangilash</button></div><div class="table-wrap"><table><thead><tr><th>Arizachi</th><th>Telefon</th><th>Telegram</th><th>Faoliyati</th><th>Holat</th><th>Amal</th></tr></thead><tbody id="sellerAppRows"></tbody></table></div></div>
+ <div class="panel" style="margin-top:15px"><h2>Tasdiqlangan tadbirkorlar</h2><div class="table-wrap"><table><thead><tr><th>Ism</th><th>Telegram</th><th>Mahsulotlar</th><th>Qarz</th><th>Holat</th></tr></thead><tbody id="sellerRows"></tbody></table></div></div>
+</section>
 <section class="section" id="reviews">
   <div class="stats"><div class="stat"><div class="stat-label">Jami sharhlar</div><div class="stat-value" id="reviewsTotal">0</div><div class="stat-note">Xaridorlar fikri</div></div><div class="stat"><div class="stat-label">O‘rtacha baho</div><div class="stat-value" id="reviewsAverage">—</div><div class="stat-note">5 ballik tizim</div></div></div>
   <div class="panel"><div class="toolbar"><h2>Mahsulot sharhlari</h2><button class="secondary" id="refreshReviews">↻ Yangilash</button></div><div id="reviewsList"></div></div>
@@ -352,7 +356,6 @@ html,body{max-width:100%;overflow-x:hidden!important}
     <h2>Sayt dizayni va joylashuvi</h2>
     <p class="muted">Uchta tayyor ko‘rinishdan birini tanlang. Menyu tugmalarini sudrab joyini almashtirishingiz mumkin.</p>
     <label class="label">Sayt dizayni — 3 ta yangi dizayn</label><select class="field hidden" id="siteTheme"><option value="glass">1. GLASS</option><option value="soft">2. SOFT</option><option value="night">3. NIGHT</option><option value="current">4. Hozirgi dizayn</option></select><div class="theme-picks" id="themePicks"><button type="button" class="theme-pick" data-theme-pick="glass"><span class="theme-preview glass-preview">◈</span><b>1. GLASS</b><small>Shishali / oynadek</small></button><button type="button" class="theme-pick" data-theme-pick="soft"><span class="theme-preview soft-preview">✦</span><b>2. SOFT</b><small>Yumshoq pastel</small></button><button type="button" class="theme-pick" data-theme-pick="night"><span class="theme-preview night-preview">☾</span><b>3. NIGHT</b><small>To‘q zamonaviy</small></button></div><button type="button" class="secondary" id="currentDesign" style="width:100%;margin:4px 0 14px">4. Hozirgi dizaynni qaytarish</button>
-    <div class="panel" style="margin:12px 0;padding:14px"><h3 style="margin:0 0 8px">Profil uchun umumiy logo</h3><p class="muted">Foydalanuvchi o‘z logosini tanlamagan bo‘lsa, shu logo profilida ko‘rinadi.</p><input class="field" id="globalProfileLogoFile" type="file" accept="image/*"><img id="globalProfileLogoPreview" alt="Profil logosi" style="width:76px;height:76px;object-fit:cover;border-radius:18px;background:#171914;margin:8px 0"><button type="button" class="secondary" id="saveGlobalProfileLogo">Profil logosini saqlash</button></div>
     <label class="label" for="accentColor">Asosiy rangni o‘zingiz tanlang</label><input class="color" type="color" id="accentColor" value="#b7f34a">
     <button class="primary" id="saveColor" style="margin-top:12px">Dizaynni saqlash</button>
     <p class="admin-sort-hint">Menyu elementlarini sichqoncha yoki barmoq bilan bosib ushlab, boshqa joyga sudrang.</p>
@@ -432,7 +435,8 @@ html,body{max-width:100%;overflow-x:hidden!important}
   const sharedKeys = new Set([
     'mono_store_products_v2','mono_store_settings_v2','mono_store_slides_v2',
     'mono_store_cart_events_v1','shoply_reviews_v1','shoply_orders_v1',
-    'mono_store_admin_profile_v1','shoply_site_builder_v1','shoply_promo_codes_v1'
+    'mono_store_admin_profile_v1','shoply_site_builder_v1','shoply_promo_codes_v1',
+    'shoply_seller_applications_v1','shoply_sellers_v1','shoply_seller_products_v1','shoply_seller_debts_v1'
   ]);
   const nativeGet=Storage.prototype.getItem, nativeSet=Storage.prototype.setItem, nativeRemove=Storage.prototype.removeItem;
   const pending=new Map();
@@ -531,6 +535,17 @@ function esc(v){
  return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 function sumMoney(n){return new Intl.NumberFormat('uz-UZ').format(Number(n)||0)+' so‘m'}
+function sellerState(k){try{return JSON.parse(localStorage.getItem(k)||'[]')}catch{return []}}
+function saveSellerState(k,v){localStorage.setItem(k,JSON.stringify(v))}
+function renderSellerAdmin(){
+ const apps=sellerState('shoply_seller_applications_v1'), sellers=sellerState('shoply_sellers_v1'), prods=sellerState('shoply_seller_products_v1'), debts=sellerState('shoply_seller_debts_v1');
+ const ar=$('sellerAppRows');if(ar)ar.innerHTML=apps.length?apps.map(x=>`<tr><td><b>${esc(x.name)}</b></td><td>${esc(x.phone)}</td><td>${esc(x.telegram)}</td><td>${esc(x.about)}</td><td>${esc(x.status)}</td><td>${x.status==='pending'?`<button class="primary" data-seller-approve="${esc(x.id)}">Tasdiqlash</button> <button class="danger" data-seller-reject="${esc(x.id)}">Rad etish</button>`:'—'}</td></tr>`).join(''):'<tr><td colspan="6">Arizalar yo‘q</td></tr>';
+ const sr=$('sellerRows');if(sr)sr.innerHTML=sellers.map(x=>{const count=prods.filter(p=>String(p.sellerId)===String(x.telegramId)).length, debt=debts.filter(d=>String(d.sellerId)===String(x.telegramId)).reduce((n,d)=>n+Number(d.amount||0),0);return `<tr><td>${esc(x.name)}</td><td>${esc(x.telegram)}</td><td>${count}</td><td>${sumMoney(debt)}</td><td>${esc(x.status)}</td></tr>`}).join('')||'<tr><td colspan="5">Tadbirkorlar yo‘q</td></tr>';
+}
+$('refreshSellerApps')?.addEventListener('click',renderSellerAdmin);
+$('sellerAppRows')?.addEventListener('click',e=>{const ok=e.target.closest('[data-seller-approve]'),no=e.target.closest('[data-seller-reject]');if(!ok&&!no)return;const apps=sellerState('shoply_seller_applications_v1'),id=(ok||no).dataset.sellerApprove||(no&&no.dataset.sellerReject),app=apps.find(x=>x.id===id);if(!app)return;app.status=ok?'approved':'rejected';saveSellerState('shoply_seller_applications_v1',apps);const sellers=sellerState('shoply_sellers_v1').filter(x=>String(x.telegramId)!==String(app.telegramId));if(ok)sellers.push({...app,status:'approved',approvedAt:new Date().toISOString()});saveSellerState('shoply_sellers_v1',sellers);renderSellerAdmin()});
+renderSellerAdmin();
+
 function todayKey(date=new Date()){
  return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
 }
@@ -779,12 +794,7 @@ $('saveProfile').addEventListener('click',()=>{
  if(!name){alert('Ismni kiriting.');return}
  if(save(PROFILE_KEY,{name,email})){loadProfile();alert('Profil saqlandi.')}
 });
-function chooseSiteTheme(theme){const accents={glass:'#9cdbff',soft:'#d9c7ff',night:'#a9d8ff',current:'#b7f34a'};const accent=accents[theme]||accents.current;$('siteTheme').value=theme;document.body.dataset.adminTheme=theme; $('accentColor').value=accent;applyAccent(accent);document.querySelectorAll('[data-theme-pick]').forEach(b=>b.classList.toggle('active',b.dataset.themePick===theme));$('currentDesign').classList.toggle('active',theme==='current');const cfg={...readObject('shoply_site_builder_v1',{}),theme,accent};save('shoply_site_builder_v1',cfg);localStorage.setItem('shoply_site_builder_v1',JSON.stringify(cfg));window.shoplyBackupWrite?.('shoply_site_builder_v1',JSON.stringify(cfg));}document.querySelectorAll('[data-theme-pick]').forEach(btn=>btn.addEventListener('click',()=>chooseSiteTheme(btn.dataset.themePick)));$('currentDesign').addEventListener('click',()=>chooseSiteTheme('current'));
-const globalLogoCfg=()=>readObject('shoply_site_builder_v1',{});
-function showGlobalProfileLogo(){const cfg=globalLogoCfg();$('globalProfileLogoPreview').src=cfg.profileLogo||'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" rx="25" fill="%23191b16"/%3E%3Ctext x="50" y="67" text-anchor="middle" font-size="58" font-weight="bold" fill="%23b7f34a"%3ES%3C/text%3E%3C/svg%3E'}
-showGlobalProfileLogo();
-$('saveGlobalProfileLogo').onclick=()=>{const file=$('globalProfileLogoFile').files?.[0];if(!file){alert('Avval galereyadan logo tanlang.');return}if(!file.type.startsWith('image/')||file.size>7*1024*1024){alert('1 ta rasm tanlang, hajmi 7 MB dan oshmasin.');return}const reader=new FileReader();reader.onload=()=>{const img=new Image();img.onload=()=>{const c=document.createElement('canvas'),scale=Math.min(1,700/Math.max(img.width,img.height));c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);c.getContext('2d').drawImage(img,0,0,c.width,c.height);const cfg={...globalLogoCfg(),profileLogo:c.toDataURL('image/jpeg',.78)};if(save('shoply_site_builder_v1',cfg)){window.shoplyPush?.('shoply_site_builder_v1',cfg);showGlobalProfileLogo();alert('Umumiy profil logosi saqlandi.')}};img.src=reader.result};reader.readAsDataURL(file)};
-$('saveColor').addEventListener('click',()=>{const cfg={...readObject('shoply_site_builder_v1',{}),theme:$('siteTheme').value,accent:$('accentColor').value};save('shoply_site_builder_v1',cfg);applyAccent(cfg.accent);localStorage.setItem('shoply_site_builder_v1',JSON.stringify(cfg));alert('Dizayn saqlandi. Mahsulotlar va buyurtmalar o‘zgarmadi.');});
+function chooseSiteTheme(theme){const accents={glass:'#9cdbff',soft:'#d9c7ff',night:'#a9d8ff',current:'#b7f34a'};const accent=accents[theme]||accents.current;$('siteTheme').value=theme;document.body.dataset.adminTheme=theme; $('accentColor').value=accent;applyAccent(accent);document.querySelectorAll('[data-theme-pick]').forEach(b=>b.classList.toggle('active',b.dataset.themePick===theme));$('currentDesign').classList.toggle('active',theme==='current');const cfg={...readObject('shoply_site_builder_v1',{}),theme,accent};save('shoply_site_builder_v1',cfg);localStorage.setItem('shoply_site_builder_v1',JSON.stringify(cfg));window.shoplyBackupWrite?.('shoply_site_builder_v1',JSON.stringify(cfg));}document.querySelectorAll('[data-theme-pick]').forEach(btn=>btn.addEventListener('click',()=>chooseSiteTheme(btn.dataset.themePick)));$('currentDesign').addEventListener('click',()=>chooseSiteTheme('current'));$('saveColor').addEventListener('click',()=>{const cfg={...readObject('shoply_site_builder_v1',{}),theme:$('siteTheme').value,accent:$('accentColor').value};save('shoply_site_builder_v1',cfg);applyAccent(cfg.accent);localStorage.setItem('shoply_site_builder_v1',JSON.stringify(cfg));alert('Dizayn saqlandi. Mahsulotlar va buyurtmalar o‘zgarmadi.');});
 $('resetSiteDesign').onclick=async()=>{if(!confirm('Sayt dizayni va joylashuvini boshlang‘ich holatga qaytarasizmi? Mahsulotlar va buyurtmalar o‘chmaydi.'))return;const cfg={...readObject('shoply_site_builder_v1',{}),theme:'current',accent:'#b7f34a',navOrder:[],layoutOrder:[]};save('shoply_site_builder_v1',cfg);const ok=await window.shoplyPush?.('shoply_site_builder_v1',cfg);document.body.dataset.adminTheme='current';$('siteTheme').value='current';$('accentColor').value='#b7f34a';applyAccent('#b7f34a');applyNavOrder([]);document.querySelectorAll('[data-theme-pick]').forEach(b=>b.classList.remove('active'));$('currentDesign').classList.add('active');alert('Dizayn tiklandi. Mahsulotlar va buyurtmalar saqlanib qoldi.');};
 $('saveAdminCredentials').onclick=()=>{const adminLogin=$('newAdminLogin').value.trim(),adminPassword=$('newAdminPassword').value;if(!adminLogin||!adminPassword){alert('Login va parolni to‘ldiring.');return}save('shoply_site_builder_v1',{...readObject('shoply_site_builder_v1',{}),adminLogin,adminPassword});alert('Admin login va paroli saqlandi.');};
 
