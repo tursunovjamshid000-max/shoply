@@ -146,16 +146,12 @@ async function putApplications(list) {
 }
 
 async function getCommissionLog() {
-  const x = await getOne('shoply_commission_log_v1',
-  'shoply_seller_messages_v1',
-  'shoply_admin_notifications_v1');
+  const x = await getOne('shoply_commission_log_v1');
   return Array.isArray(x.value) ? x.value : [];
 }
 
 async function putCommissionLog(list) {
-  await putOne('shoply_commission_log_v1',
-  'shoply_seller_messages_v1',
-  'shoply_admin_notifications_v1', list);
+  await putOne('shoply_commission_log_v1', list);
 }
 
 async function getProducts() {
@@ -1143,8 +1139,7 @@ http.createServer(async (req, res) => {
       if (!userId || !body) return send(res, 400, { error: 'userId va xabar matni kerak' });
       const sellers = await getSellers();
       if (!findSeller(sellers, userId)) return send(res, 404, { error: 'Tadbirkor topilmadi' });
-      const item = await getOne('shoply_seller_messages_v1',
-  'shoply_admin_notifications_v1');
+      const item = await getOne('shoply_seller_messages_v1');
       const all = item.value && typeof item.value === 'object' && !Array.isArray(item.value) ? item.value : {};
       const list = Array.isArray(all[userId]) ? all[userId] : [];
       const msg = {
@@ -1157,16 +1152,14 @@ http.createServer(async (req, res) => {
         read: false
       };
       all[userId] = [msg, ...list].slice(0, 500);
-      await putOne('shoply_seller_messages_v1',
-  'shoply_admin_notifications_v1', all);
+      await putOne('shoply_seller_messages_v1', all);
       return send(res, 201, { ok: true, message: msg });
     }
 
     if (p === '/api/seller/messages' && req.method === 'GET') {
       const userId = sanitizeStr(u.searchParams.get('userId'), 80);
       if (!userId) return send(res, 400, { error: 'userId kerak' });
-      const item = await getOne('shoply_seller_messages_v1',
-  'shoply_admin_notifications_v1');
+      const item = await getOne('shoply_seller_messages_v1');
       const all = item.value && typeof item.value === 'object' && !Array.isArray(item.value) ? item.value : {};
       const list = Array.isArray(all[userId]) ? all[userId] : [];
       return send(res, 200, list);
@@ -1177,13 +1170,11 @@ http.createServer(async (req, res) => {
       const userId = sanitizeStr(b.userId, 80);
       const msgId = sanitizeStr(b.messageId, 80);
       if (!userId) return send(res, 400, { error: 'userId kerak' });
-      const item = await getOne('shoply_seller_messages_v1',
-  'shoply_admin_notifications_v1');
+      const item = await getOne('shoply_seller_messages_v1');
       const all = item.value && typeof item.value === 'object' && !Array.isArray(item.value) ? item.value : {};
       const list = Array.isArray(all[userId]) ? all[userId] : [];
       all[userId] = list.map(m => (msgId && String(m.id) !== msgId ? m : { ...m, read: true }));
-      await putOne('shoply_seller_messages_v1',
-  'shoply_admin_notifications_v1', all);
+      await putOne('shoply_seller_messages_v1', all);
       return send(res, 200, { ok: true });
     }
 
@@ -1315,6 +1306,19 @@ http.createServer(async (req, res) => {
     if (p === '/api/admin/notifications' && req.method === 'GET') {
       const item = await getOne('shoply_admin_notifications_v1');
       return send(res, 200, Array.isArray(item.value) ? item.value : []);
+    }
+
+    if (p === '/api/admin/notifications/read' && req.method === 'POST') {
+      const b = await readBody(req);
+      const item = await getOne('shoply_admin_notifications_v1');
+      let list = Array.isArray(item.value) ? item.value : [];
+      if (b && b.all) {
+        list = list.map(n => ({ ...n, read: true }));
+      } else if (b && b.id) {
+        list = list.map(n => String(n.id) === String(b.id) ? { ...n, read: true } : n);
+      }
+      await putOne('shoply_admin_notifications_v1', list);
+      return send(res, 200, { ok: true });
     }
 
     // Reviews (unchanged)

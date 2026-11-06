@@ -179,6 +179,7 @@ th{color:var(--muted);font-size:11px}
 #sellers{max-width:100%;overflow-x:hidden}
 #sellers .panel{max-width:100%;overflow:hidden}
 #sellersCards,#appsCards{max-width:100%;width:100%;box-sizing:border-box}
+@media(max-width:700px){#xabarlar .panel [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}}
 .seller-card{max-width:100%;min-width:0;overflow:hidden}
 .seller-card h3,.seller-card .sub{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 #sellerFullSheet{max-width:min(920px,100vw)!important;width:100%!important}
@@ -281,10 +282,10 @@ html,body{max-width:100%;overflow-x:hidden!important}
 
 <section class="section active" id="dashboard">
   <div class="stats">
-    <div class="stat"><div class="stat-label">Jami mahsulot</div><div class="stat-value" id="statProducts">0</div><div class="stat-note">Do‘kondagi mahsulotlar</div></div>
+    <div class="stat"><div class="stat-label">Jami mahsulot</div><div class="stat-value" id="statProducts">0</div><div class="stat-note">Muzlatilganlarsiz faol</div></div>
+    <div class="stat"><div class="stat-label">Muzlatilgan mahsulotlar</div><div class="stat-value" id="statFrozenProducts">0</div><div class="stat-note">Muzlatilgan akkauntdagi</div></div>
     <div class="stat"><div class="stat-label">Bugun savatga qo‘shildi</div><div class="stat-value" id="statToday">0</div><div class="stat-note">Mahsulot qo‘shilishlari</div></div>
     <div class="stat"><div class="stat-label">Bugungi noyob mahsulotlar</div><div class="stat-value" id="statUnique">0</div><div class="stat-note">Turli mahsulotlar soni</div></div>
-    <div class="stat"><div class="stat-label">Kategoriyalar</div><div class="stat-value" id="statCategories">0</div><div class="stat-note">Mahsulot kategoriyalari</div></div>
   </div>
   <div class="panel" style="margin-bottom:15px">
     <h2>Ma’lumotlarni saqlash</h2>
@@ -460,8 +461,36 @@ html,body{max-width:100%;overflow-x:hidden!important}
 </style>
 <section class="section" id="xabarlar">
   <div class="toolbar"><h2>💬 Xabarlar</h2><button class="secondary" type="button" id="refreshXabarlar">Yangilash</button></div>
-  <p class="muted" style="margin:0 0 12px">Rasmiylashtirish va tadbirkor tasdiqlash/rad etish haqidagi xabarlar shu yerda.</p>
-  <div class="panel" id="xabarlarList"><p class="muted">Yuklanmoqda...</p></div>
+  <p class="muted" style="margin:0 0 14px">Rasmiylashtirish, tasdiq/rad va tizim xabarlari. Bu yerda tadbirkorga ham xabar yuborishingiz mumkin.</p>
+  <div class="panel" style="margin-bottom:16px">
+    <h3 style="margin:0 0 12px;font-size:15px;font-weight:900">📤 Tadbirkorga xabar yuborish</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div>
+        <label class="muted" style="display:block;margin-bottom:6px;font-size:12px;font-weight:700">Tadbirkorni tanlang</label>
+        <select class="field" id="msgSellerSelect" style="margin:0"><option value="">— Tanlang —</option></select>
+      </div>
+      <div>
+        <label class="muted" style="display:block;margin-bottom:6px;font-size:12px;font-weight:700">Turi</label>
+        <select class="field" id="msgTypeSelect" style="margin:0">
+          <option value="info">Info</option>
+          <option value="warning">Ogohlantirish</option>
+          <option value="sms">SMS / Muhim</option>
+        </select>
+      </div>
+    </div>
+    <label class="muted" style="display:block;margin:10px 0 6px;font-size:12px;font-weight:700">Sarlavha</label>
+    <input class="field" id="msgTitleInput" placeholder="Masalan: Ogohlantirish" style="margin:0">
+    <label class="muted" style="display:block;margin:10px 0 6px;font-size:12px;font-weight:700">Xabar matni</label>
+    <textarea class="field" id="msgBodyInput" rows="3" placeholder="Xabar matnini yozing..." style="margin:0"></textarea>
+    <div style="display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap">
+      <button class="primary" type="button" id="msgSendBtn">Yuborish</button>
+      <span class="muted" id="msgSendStatus" style="font-size:13px"></span>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="toolbar" style="margin-bottom:8px"><h3 style="margin:0;font-size:15px">📥 Kelgan xabarlar</h3><button class="secondary" type="button" id="markAllNotifRead" style="padding:8px 12px">Hammasini o‘qildi</button></div>
+    <div id="xabarlarList"><p class="muted">Yuklanmoqda...</p></div>
+  </div>
 </section>
 <section class="section" id="settings">
   <div class="panel" style="margin-bottom:15px">
@@ -690,15 +719,19 @@ function refreshData(){
  events=readArray(CART_EVENT_KEY,[]);
 }
 function updateStats(){
- const cats=new Set(products.map(p=>toCategoryKey(p)));
+ const frozenIds=new Set((adminSellersList||[]).filter(s=>s&&s.status==='frozen').map(s=>String(s.userId)));
+ const activeProducts=products.filter(p=>!p.sellerId||!frozenIds.has(String(p.sellerId)));
+ const frozenProducts=products.filter(p=>p.sellerId&&frozenIds.has(String(p.sellerId)));
+ const cats=new Set(activeProducts.map(p=>toCategoryKey(p)));
  const today=events.filter(e=>e.day===todayKey());
- $('statProducts').textContent=products.length;
- $('statCategories').textContent=cats.size;
- $('statToday').textContent=today.reduce((n,e)=>n+(Number(e.qty)||1),0);
- $('statUnique').textContent=new Set(today.map(e=>String(e.productId))).size;
- $('productCount').textContent=products.length;
- $('categoryCount').textContent=cats.size;
- $('averagePrice').textContent=sumMoney(products.length?Math.round(products.reduce((n,p)=>n+(Number(p.price)||0),0)/products.length):0);
+ if($('statProducts'))$('statProducts').textContent=activeProducts.length;
+ if($('statFrozenProducts'))$('statFrozenProducts').textContent=frozenProducts.length;
+ if($('statCategories'))$('statCategories').textContent=cats.size;
+ if($('statToday'))$('statToday').textContent=today.reduce((n,e)=>n+(Number(e.qty)||1),0);
+ if($('statUnique'))$('statUnique').textContent=new Set(today.map(e=>String(e.productId))).size;
+ if($('productCount'))$('productCount').textContent=activeProducts.length;
+ if($('categoryCount'))$('categoryCount').textContent=cats.size;
+ if($('averagePrice'))$('averagePrice').textContent=sumMoney(activeProducts.length?Math.round(activeProducts.reduce((n,p)=>n+(Number(p.price)||0),0)/activeProducts.length):0);
 }
 function renderProducts(){
  refreshData();
@@ -922,39 +955,45 @@ $('refreshOrders').onclick=renderOrders;$('refreshReviews').onclick=renderReview
 
 
 async function loadAdminNotifications(){
-  try{
-    const r=await fetch('/api/admin/notifications',{cache:'no-store'});
-    const list=r.ok?await r.json():[];
-    let box=$('adminNotifBox');
-    if(!box){
-      const dash=$('dashboard');
-      if(!dash)return;
-      box=document.createElement('div');
-      box.id='adminNotifBox';
-      box.className='panel';
-      box.style.marginBottom='16px';
-      dash.insertBefore(box, dash.firstChild);
-    }
-    const unread=list.filter(n=>!n.read).slice(0,15);
-    box.innerHTML=`<div class="toolbar"><h2>🔔 Bildirishnomalar</h2><span class="muted">${list.length} ta</span></div>`+
-      (unread.length?unread.map(n=>`<div style="padding:10px 0;border-bottom:1px solid var(--line)"><b>${esc(n.title||'')}</b><div class="muted" style="font-size:12px">${esc((n.createdAt||'').slice(0,16))}</div><div style="font-size:13px;margin-top:4px">${esc(n.body||'')}${n.sellers&&n.sellers.length?' · 🏪 '+esc(n.sellers.join(', ')):''}</div></div>`).join(''):'<p class="muted">Yangi bildirishnoma yo‘q</p>');
-  }catch(e){}
+  // Rasmiylashtirish xabarlari faqat «Xabarlar» bo‘limida
+  const box=$('adminNotifBox');
+  if(box) box.remove();
 }
 
 
+async function fillMsgSellerSelect(){
+  const sel=$('msgSellerSelect');
+  if(!sel)return;
+  try{
+    if(!adminSellersList.length){
+      const r=await fetch('/api/admin/sellers',{cache:'no-store'});
+      adminSellersList=r.ok?await r.json():[];
+      if(!Array.isArray(adminSellersList)) adminSellersList=[];
+    }
+    const cur=sel.value;
+    sel.innerHTML='<option value="">— Tanlang —</option>'+adminSellersList.map(s=>{
+      const nick=s.login||(s.telegramUsername||'').replace(/^@/,'')||s.storeName||s.userId;
+      const st=s.status==='frozen'?' (muzlatilgan)':'';
+      return `<option value="${esc(String(s.userId))}">${esc(nick)}${st}</option>`;
+    }).join('');
+    if(cur) sel.value=cur;
+  }catch(e){}
+}
 async function renderXabarlar(){
   const box=$('xabarlarList');
   if(!box)return;
   box.innerHTML='<p class="muted">Yuklanmoqda...</p>';
+  await fillMsgSellerSelect();
   try{
     const r=await fetch('/api/admin/notifications',{cache:'no-store'});
     const list=r.ok?await r.json():[];
     if(!list.length){box.innerHTML='<p class="muted">Hali xabar yo‘q.</p>';return}
     box.innerHTML=list.map(n=>{
       const nick=(n.officialNicks&&n.officialNicks.length)?n.officialNicks.join(', '):(n.officialNick||((n.sellers&&n.sellers.length)?n.sellers.join(', '):''));
-      return `<article style="padding:14px 0;border-bottom:1px solid var(--line)">
+      const unread=!n.read;
+      return `<article style="padding:14px 0;border-bottom:1px solid var(--line);opacity:${unread?1:0.72}">
         <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start">
-          <b style="font-size:15px">${esc(n.title||'Xabar')}</b>
+          <b style="font-size:15px">${esc(n.title||'Xabar')}${unread?' <span style="color:#b4232e;font-size:11px">Yangi</span>':''}</b>
           <span class="muted" style="font-size:12px">${esc((n.createdAt||'').toString().slice(0,19).replace('T',' '))}</span>
         </div>
         <div style="font-size:13px;margin-top:6px;line-height:1.5">${esc(n.body||'')}</div>
@@ -966,6 +1005,31 @@ async function renderXabarlar(){
   }catch(e){box.innerHTML='<p class="muted">Xabarlarni yuklab bo‘lmadi.</p>'}
 }
 if($('refreshXabarlar'))$('refreshXabarlar').onclick=renderXabarlar;
+if($('msgSendBtn'))$('msgSendBtn').onclick=async()=>{
+  const userId=$('msgSellerSelect')?.value;
+  const title=($('msgTitleInput')?.value||'').trim()||'Admin xabari';
+  const body=($('msgBodyInput')?.value||'').trim();
+  const type=$('msgTypeSelect')?.value||'info';
+  const st=$('msgSendStatus');
+  if(!userId){if(st)st.textContent='Tadbirkorni tanlang';return}
+  if(!body){if(st)st.textContent='Xabar matnini yozing';return}
+  const btn=$('msgSendBtn');btn.disabled=true;if(st)st.textContent='Yuborilmoqda...';
+  try{
+    const r=await fetch('/api/admin/sellers/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId,title,body,type})});
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.error||'Yuborilmadi');
+    if(st)st.textContent='Yuborildi ✓';
+    if($('msgBodyInput'))$('msgBodyInput').value='';
+    if($('msgTitleInput'))$('msgTitleInput').value='';
+  }catch(e){if(st)st.textContent=e.message||'Xato'}
+  finally{btn.disabled=false}
+};
+if($('markAllNotifRead'))$('markAllNotifRead').onclick=async()=>{
+  try{
+    await fetch('/api/admin/notifications/read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({all:true})});
+    await renderXabarlar();
+  }catch(e){alert('Belgilab bo‘lmadi')}
+};
 
 function showSection(id){
  document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active',s.id===id));
@@ -973,7 +1037,8 @@ function showSection(id){
  const names={dashboard:'Boshqaruv',products:'Mahsulotlar',cart:'Savat statistikasi',orders:'Buyurtmalar',reviews:'Sharhlar',banners:'Bannerlar',sellers:'Tadbirkorlar',xabarlar:'Xabarlar',settings:'Sozlamalar'};
  $('pageTitle').textContent=names[id]||'Admin panel';
  $('headerAdd').classList.toggle('hidden',id!=='products');
- if(id==='dashboard'||id==='cart')renderCart();
+ if(id==='dashboard'||id==='cart'){renderCart();loadSellerAdmin().then(()=>updateStats()).catch(()=>{});}
+
  if(id==='products')renderProducts();
  if(id==='banners')renderBanners();
  if(id==='orders')renderOrders();
@@ -1226,7 +1291,7 @@ if($('sellersCards'))$('sellersCards').addEventListener('click',e=>{
 });
 
 const _origShow=showSection;
-showSection=function(id){_origShow(id);if(id==='sellers')loadSellerAdmin();if(id==='dashboard')loadAdminNotifications()};setTimeout(loadAdminNotifications,600);;
+showSection=function(id){_origShow(id);if(id==='sellers'||id==='dashboard'||id==='xabarlar')loadSellerAdmin().then(()=>{if(id==='dashboard')updateStats();if(id==='xabarlar')renderXabarlar();}).catch(()=>{});};setTimeout(()=>{const box=$('adminNotifBox');if(box)box.remove();loadSellerAdmin().then(updateStats).catch(()=>{});},400);;
 
 $('headerAdd').onclick=()=>openProduct();
 $('addProduct').onclick=()=>openProduct();
