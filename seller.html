@@ -115,6 +115,7 @@ td{padding:12px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
 <body>
 <div class="auth-wrap" id="loginScreen">
   <div class="auth-card">
+    <a href="index.html" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:#3d7a10;font-weight:750;font-size:13px;margin-bottom:14px">← Orqaga / Do‘konga qaytish</a>
     <div class="auth-logo">SHOP<span>LY</span></div>
     <p class="auth-sub">Tadbirkor paneliga kirish. Login va parolingizni kiriting.</p>
     <label>Login</label>
@@ -129,6 +130,7 @@ td{padding:12px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
 </div>
 <div class="auth-wrap" id="setupScreen" style="display:none">
   <div class="auth-card">
+    <a href="index.html" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:#3d7a10;font-weight:750;font-size:13px;margin-bottom:14px">← Orqaga / Do‘konga qaytish</a>
     <div class="auth-logo">SHOP<span>LY</span></div>
     <p class="auth-sub">Tabriklaymiz! Profilingiz tasdiqlandi. Panelga kirish uchun login va parol yarating. Ular Sozlamalarda ko‘rinadi.</p>
     <label>Login *</label>
@@ -155,6 +157,8 @@ td{padding:12px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
     <button class="nav" data-section="orders"><span class="ico">☰</span>Buyurtmalar</button>
     <button class="nav" data-section="debt"><span class="ico">₽</span>Qarzdorlik</button>
     <button class="nav" data-section="stats"><span class="ico">▤</span>Statistika</button>
+    <button class="nav" data-section="reviews"><span class="ico">⭐</span>Sharhlar</button>
+    <button class="nav" data-section="messages"><span class="ico">💬</span>Xabarlar</button>
     <button class="nav" data-section="settings"><span class="ico">⚙</span>Sozlamalar</button>
     <div class="side-bottom">
       <button class="nav" id="btnLogout" style="color:#b4232e"><span class="ico">←</span>Chiqish</button>
@@ -209,6 +213,21 @@ td{padding:12px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
           <div class="stat"><div class="stat-label">Jami savdo</div><div class="stat-value" id="statS">0</div></div>
           <div class="stat"><div class="stat-label">Komissiya qarzi</div><div class="stat-value" id="statD">0</div></div>
         </div>
+      </div>
+    </section>
+    <section class="section" id="sec-reviews">
+      <div class="panel">
+        <div class="panel-head"><h2>Mahsulot sharhlari</h2></div>
+        <p class="muted" style="margin-bottom:12px">Sizning mahsulotlaringizga yozilgan sharhlar</p>
+        <div id="reviewsList"><div class="empty">Yuklanmoqda...</div></div>
+      </div>
+    </section>
+    <section class="section" id="sec-messages">
+      <div class="panel">
+        <div class="panel-head"><h2>Admin xabarlari va ogohlantirishlar</h2>
+          <button class="btn btn-ghost btn-sm" type="button" id="markAllRead">Hammasini o‘qildi</button>
+        </div>
+        <div id="messagesList"><div class="empty">Yuklanmoqda...</div></div>
       </div>
     </section>
     <section class="section" id="sec-settings">
@@ -268,12 +287,14 @@ const money=v=>Number(v||0).toLocaleString('uz-UZ')+' so‘m';
 const TOKEN_KEY='shoply_seller_token';
 let seller=null,myProducts=[],myOrders=[],commissions=[],sessionToken=localStorage.getItem(TOKEN_KEY)||'';
 try{window.Telegram?.WebApp?.ready?.();window.Telegram?.WebApp?.expand?.()}catch(e){}
-const titles={home:['Bosh sahifa','Do‘koningiz statistikasi'],products:['Mahsulotlarim','O‘z mahsulotlaringiz'],orders:['Buyurtmalar','Faqat sizning mahsulotlaringiz'],debt:['Qarzdorlik','3% komissiya'],stats:['Statistika','Real ma’lumotlar'],settings:['Sozlamalar','Login, parol va profil']};
+const titles={home:['Bosh sahifa','Do‘koningiz statistikasi'],products:['Mahsulotlarim','O‘z mahsulotlaringiz'],orders:['Buyurtmalar','Faqat sizning mahsulotlaringiz'],debt:['Qarzdorlik','3% komissiya'],stats:['Statistika','Real ma’lumotlar'],reviews:['Sharhlar','Mahsulotlaringizga yozilgan fikrlar'],messages:['Xabarlar','Admin ogohlantirishlari'],settings:['Sozlamalar','Login, parol va profil']};
 function goSection(id){
   document.querySelectorAll('.nav[data-section], .mobile-nav button').forEach(b=>b.classList.toggle('active',b.dataset.section===id));
   document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active',s.id==='sec-'+id));
   const t=titles[id]||['',''];$('pageTitle').textContent=t[0];$('pageSub').textContent=t[1];
   document.body.classList.remove('drawer-open');
+  if(id==='reviews'&&seller)loadReviews();
+  if(id==='messages'&&seller)loadMessages();
 }
 document.querySelectorAll('.nav[data-section], .mobile-nav button').forEach(b=>b.onclick=()=>goSection(b.dataset.section));
 $('menuBtn').onclick=()=>document.body.classList.toggle('drawer-open');
@@ -344,7 +365,53 @@ function renderDebt(){
   if(!seller)return;$('debtSales').textContent=money(seller.totalSales);$('debtTotal').textContent=money(seller.totalCommission);$('debtNow').textContent=money(seller.debt);
   $('commissionRows').innerHTML=commissions.map(c=>`<tr><td>${esc((c.createdAt||'').slice(0,16))}</td><td>${esc(c.orderId)}</td><td>${esc(c.productName)}</td><td>${money(c.saleAmount)}</td><td>${money(c.amount)}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">Hali yozuv yo‘q</td></tr>';
 }
-async function enterApp(){showApp();await loadSellerData();await Promise.all([loadProducts(),loadOrders(),loadCommissions()])}
+
+async function loadReviews(){
+  try{
+    const st=await fetch('/api/state',{cache:'no-store'}).then(r=>r.json());
+    const all=st.shoply_reviews_v1||{};
+    const myIds=new Set(myProducts.map(p=>String(p.id)));
+    const rows=[];
+    for(const [pid,list] of Object.entries(all)){
+      if(!myIds.has(String(pid))) continue;
+      const p=myProducts.find(x=>String(x.id)===String(pid));
+      (Array.isArray(list)?list:[]).forEach(rv=>rows.push({...rv,productId:pid,productName:p?.name||pid}));
+    }
+    rows.sort((a,b)=>(b.date||b.createdAt||'').localeCompare(a.date||a.createdAt||''));
+    const box=$('reviewsList');
+    if(!rows.length){box.innerHTML='<div class="empty">Hali sharh yo‘q</div>';return}
+    box.innerHTML=rows.map(r=>`<div style="padding:12px 0;border-bottom:1px solid var(--line)">
+      <div style="font-weight:800;font-size:13px">${esc(r.productName)}</div>
+      <div style="color:#d4a017;margin:4px 0">${'★'.repeat(Math.min(5,Number(r.rating)||5))}${'☆'.repeat(Math.max(0,5-(Number(r.rating)||5)))}</div>
+      <div style="font-size:13px;line-height:1.4">${esc(r.text||r.comment||'')}</div>
+      <div class="muted" style="margin-top:4px">${esc(r.name||'Xaridor')} · ${esc((r.date||r.createdAt||'').toString().slice(0,16))}</div>
+    </div>`).join('');
+  }catch(e){$('reviewsList').innerHTML='<div class="empty">Sharhlar yuklanmadi</div>'}
+}
+async function loadMessages(){
+  try{
+    const r=await fetch('/api/seller/messages?userId='+encodeURIComponent(seller.userId),{cache:'no-store'});
+    const list=r.ok?await r.json():[];
+    const box=$('messagesList');
+    if(!list.length){box.innerHTML='<div class="empty">Xabarlar yo‘q</div>';return}
+    box.innerHTML=list.map(m=>{
+      const bg=m.type==='warning'?'#fff4d6':m.type==='sms'?'#e8f4ff':'#f4f6f1';
+      return `<div style="padding:14px;border-radius:14px;background:${bg};margin-bottom:10px;border:1px solid var(--line);opacity:${m.read?.6:1}">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
+          <b style="font-size:14px">${esc(m.title||'Xabar')}</b>
+          <span class="muted" style="font-size:11px">${esc((m.createdAt||'').slice(0,16))}</span>
+        </div>
+        <div style="font-size:13px;margin-top:6px;line-height:1.45">${esc(m.body||'')}</div>
+        <div style="margin-top:8px"><span class="badge">${esc(m.type||'info')}</span> ${m.read?'':'<span style="color:#b4232e;font-size:11px;font-weight:800">Yangi</span>'}</div>
+      </div>`;
+    }).join('');
+  }catch(e){$('messagesList').innerHTML='<div class="empty">Xabarlar yuklanmadi</div>'}
+}
+if($('markAllRead'))$('markAllRead').onclick=async()=>{
+  try{await fetch('/api/seller/messages/read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:seller.userId})});await loadMessages()}catch(e){}
+};
+
+async function enterApp(){showApp();await loadSellerData();await Promise.all([loadProducts(),loadOrders(),loadCommissions()]);await loadReviews();await loadMessages()}
 $('loginBtn').onclick=async()=>{const btn=$('loginBtn');btn.disabled=true;$('loginMsg').textContent='';$('loginMsg').className='auth-msg';try{const r=await fetch('/api/seller/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({login:$('loginUser').value.trim(),password:$('loginPass').value})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Xato');sessionToken=d.token;localStorage.setItem(TOKEN_KEY,sessionToken);seller=d.seller;await enterApp()}catch(e){$('loginMsg').textContent=e.message;$('loginMsg').className='auth-msg err'}finally{btn.disabled=false}};
 $('setupBtn').onclick=async()=>{const btn=$('setupBtn');btn.disabled=true;$('setupMsg').textContent='';$('setupMsg').className='auth-msg';try{if(tgUserId==='guest')throw new Error('Telegram Mini App orqali kiring, keyin login yarating.');const chk=await fetch('/api/seller/my-application?userId='+encodeURIComponent(tgUserId),{cache:'no-store'});const info=await chk.json();if(!info.isSeller)throw new Error('Hali tasdiqlanmagansiz. Admin tasdiqlashini kuting.');if(info.seller&&info.seller.login)throw new Error('Sizda allaqachon login bor. Kirish sahifasidan foydalaning.');const r=await fetch('/api/seller/set-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:tgUserId,login:$('setupLogin').value.trim(),password:$('setupPass').value,password2:$('setupPass2').value})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Xato');sessionToken=d.token;localStorage.setItem(TOKEN_KEY,sessionToken);seller=d.seller;$('setupMsg').textContent='Saqlandi!';$('setupMsg').className='auth-msg ok';await enterApp()}catch(e){$('setupMsg').textContent=e.message;$('setupMsg').className='auth-msg err'}finally{btn.disabled=false}};
 $('chgPassBtn').onclick=async()=>{$('chgMsg').textContent='';try{const r=await fetch('/api/seller/change-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:seller.userId,token:sessionToken,oldPassword:$('chgOld').value,password:$('chgNew').value,password2:$('chgNew2').value})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Xato');$('chgMsg').textContent='Parol yangilandi';$('chgMsg').style.color='#2a7a20';$('chgOld').value=$('chgNew').value=$('chgNew2').value=''}catch(e){$('chgMsg').textContent=e.message;$('chgMsg').style.color='#b4232e'}};

@@ -354,37 +354,96 @@ html,body{max-width:100%;overflow-x:hidden!important}
 </section>
 
 
+
 <section class="section" id="sellers">
-  <div class="stats">
+  <div class="stats" id="sellerStatsRow">
     <div class="stat"><div class="stat-label">Jami tadbirkorlar</div><div class="stat-value" id="selTotal">0</div></div>
-    <div class="stat"><div class="stat-label">Faol</div><div class="stat-value" id="selActive">0</div></div>
-    <div class="stat"><div class="stat-label">Muzlatilgan</div><div class="stat-value" id="selFrozen">0</div></div>
+    <div class="stat"><div class="stat-label">Tasdiqlanganlar</div><div class="stat-value" id="selActive">0</div></div>
+    <div class="stat"><div class="stat-label">Muzlatilganlar</div><div class="stat-value" id="selFrozen">0</div></div>
     <div class="stat"><div class="stat-label">Kutilayotgan arizalar</div><div class="stat-value" id="selPending">0</div></div>
   </div>
   <div class="panel" style="margin-bottom:14px">
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-      <button class="primary" type="button" id="tabApps" style="padding:8px 14px">Arizalar</button>
-      <button class="secondary" type="button" id="tabSellers" style="padding:8px 14px">Tadbirkorlar</button>
-      <input class="field search" id="sellerSearch" placeholder="Qidiruv: do‘kon, ism, telegram..." style="flex:1;min-width:180px;margin:0">
-      <select class="field" id="sellerFilter" style="width:auto;margin:0;min-width:140px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
+      <button class="primary" type="button" id="tabApps" style="padding:9px 16px;border-radius:999px">Arizalar</button>
+      <button class="secondary" type="button" id="tabSellers" style="padding:9px 16px;border-radius:999px">Tadbirkorlar</button>
+      <input class="field search" id="sellerSearch" placeholder="Do‘kon nomi, ism yoki username..." style="flex:1;min-width:180px;margin:0;border-radius:12px">
+      <select class="field" id="sellerFilter" style="width:auto;margin:0;min-width:130px;border-radius:12px">
         <option value="all">Barchasi</option>
         <option value="active">Faol</option>
         <option value="frozen">Muzlatilgan</option>
       </select>
-      <button class="secondary" type="button" id="refreshSellers">↻ Yangilash</button>
+      <button class="secondary" type="button" id="refreshSellers" style="border-radius:12px">↻</button>
     </div>
     <div id="appsPanel">
-      <div class="table-wrap"><table><thead><tr><th>Rasm</th><th>Ism / Do‘kon</th><th>Aloqa</th><th>Sana</th><th>Holat</th><th>Amallar</th></tr></thead><tbody id="appsRows"><tr><td colspan="6">Yuklanmoqda...</td></tr></tbody></table></div>
+      <div id="appsCards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px"></div>
     </div>
     <div id="sellersPanel" style="display:none">
-      <div class="table-wrap"><table><thead><tr><th>#</th><th>Do‘kon</th><th>Tadbirkor</th><th>Telegram</th><th>Holat</th><th>Mahsulot</th><th>Savdo</th><th>Qarz</th><th>Amallar</th></tr></thead><tbody id="sellersRows"><tr><td colspan="9">Yuklanmoqda...</td></tr></tbody></table></div>
+      <div id="sellersCards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px"></div>
     </div>
   </div>
-  <div class="panel" id="sellerDetail" style="display:none">
-    <div class="toolbar"><h2 id="sdTitle">Tadbirkor</h2><button class="secondary" type="button" id="sdClose">Yopish</button></div>
-    <div id="sdBody"></div>
-  </div>
 </section>
+
+<!-- Full-screen seller detail overlay -->
+<div id="sellerFullModal" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(12,14,10,.55);backdrop-filter:blur(6px);align-items:stretch;justify-content:center;padding:0">
+  <div id="sellerFullSheet" style="width:min(920px,100%);height:100%;max-height:100dvh;margin:0 auto;background:#f4f6f1;overflow:auto;display:flex;flex-direction:column;box-shadow:0 0 60px rgba(0,0,0,.25)">
+    <div style="position:sticky;top:0;z-index:5;background:rgba(255,255,255,.92);backdrop-filter:blur(12px);border-bottom:1px solid #e8ebe3;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div style="display:flex;align-items:center;gap:12px;min-width:0">
+        <img id="sfPhoto" src="" alt="" style="width:48px;height:48px;border-radius:14px;object-fit:cover;background:#eef8d4;display:none">
+        <div style="min-width:0">
+          <div id="sfStore" style="font-weight:950;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Do‘kon</div>
+          <div id="sfOnline" style="font-size:12px;font-weight:700;color:#3a9a20">● Online</div>
+        </div>
+      </div>
+      <button type="button" id="sfClose" class="secondary" style="border-radius:12px;padding:10px 14px;font-weight:800">✕ Yopish</button>
+    </div>
+    <div style="padding:18px;flex:1">
+      <div style="display:grid;grid-template-columns:1.1fr .9fr;gap:14px" class="sf-grid">
+        <div class="panel" style="margin:0">
+          <h3 style="margin:0 0 12px;font-size:15px">Profil ma’lumotlari</h3>
+          <div id="sfProfileBody"></div>
+        </div>
+        <div class="panel" style="margin:0">
+          <h3 style="margin:0 0 12px;font-size:15px">Statistika</h3>
+          <div id="sfStatsBody"></div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px" id="sfActions"></div>
+        </div>
+      </div>
+      <div class="panel" style="margin-top:14px">
+        <h3 style="margin:0 0 10px;font-size:15px">Xabar / ogohlantirish yuborish</h3>
+        <input class="field" id="sfMsgTitle" placeholder="Sarlavha (masalan: Ogohlantirish)" style="margin-bottom:8px">
+        <textarea class="field" id="sfMsgBody" rows="3" placeholder="Xabar matni..."></textarea>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+          <select class="field" id="sfMsgType" style="width:auto;margin:0;min-width:140px">
+            <option value="info">Ma’lumot</option>
+            <option value="warning">Ogohlantirish</option>
+            <option value="sms">SMS / Muhim</option>
+          </select>
+          <button class="primary" type="button" id="sfSendMsg" style="border-radius:10px">Yuborish</button>
+        </div>
+        <p class="muted" id="sfMsgStatus" style="margin-top:8px"></p>
+      </div>
+      <div class="panel" style="margin-top:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h3 style="margin:0;font-size:15px">Mahsulotlari</h3>
+          <span class="muted" id="sfProdCount">0 ta</span>
+        </div>
+        <div id="sfProducts" class="product-grid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<style>
+@media(max-width:800px){.sf-grid{grid-template-columns:1fr!important}}
+.seller-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:0 8px 28px rgba(20,30,10,.05);display:flex;flex-direction:column;gap:12px;transition:.2s}
+.seller-card:hover{transform:translateY(-2px);box-shadow:0 14px 36px rgba(20,30,10,.08)}
+.seller-card-top{display:flex;gap:12px;align-items:center}
+.seller-card-top img,.seller-card-avatar{width:52px;height:52px;border-radius:14px;object-fit:cover;background:#eef8d4;flex-shrink:0;display:grid;place-items:center;font-weight:900;font-size:18px}
+.seller-card h3{margin:0;font-size:15px;font-weight:900;line-height:1.25}
+.seller-card .sub{font-size:12px;color:var(--muted);margin-top:2px}
+.seller-card-meta{display:flex;flex-wrap:wrap;gap:6px;font-size:11px}
+.seller-card-foot{display:flex;gap:8px;margin-top:auto}
+#sellerFullModal.open{display:flex!important}
+</style>
 <section class="section" id="settings">
   <div class="panel" style="margin-bottom:15px">
     <h2>Promo-kodlar va chegirmalar</h2>
@@ -881,50 +940,208 @@ function renderSellerAdmin(){
   renderAppsTable();
   renderSellersTable();
 }
+
+function isOnline(last){
+  if(!last) return false;
+  const t=new Date(last).getTime();
+  if(!t) return false;
+  return (Date.now()-t) < 15*60*1000;
+}
 function renderAppsTable(){
-  const body=$('appsRows');if(!body)return;
-  const list=adminApps.slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
-  body.innerHTML=list.length?list.map(a=>{
-    const photo=a.photo?`<img src="${esc(a.photo)}" style="width:40px;height:40px;border-radius:50%;object-fit:cover">`:'—';
-    const actions=a.status==='pending'?`<button class="primary" data-app-approve="${esc(a.id)}" style="padding:6px 10px;font-size:12px">Tasdiqlash</button> <button class="danger" data-app-reject="${esc(a.id)}" style="padding:6px 10px;font-size:12px">Rad etish</button>`:`<span class="muted">${esc(a.status)}</span>`;
-    return `<tr>
-      <td>${photo}</td>
-      <td><b>${esc(a.fullName)}</b><br><span class="muted">${esc(a.storeName)}</span></td>
-      <td>${esc(a.phone)}<br>${esc(a.email||'')}<br>${esc(a.telegramUsername||'')}</td>
-      <td>${esc((a.createdAt||'').slice(0,16))}</td>
-      <td>${esc(a.status)}${a.rejectReason?('<br><span class="muted">'+esc(a.rejectReason)+'</span>'):''}</td>
-      <td>${actions}</td>
-    </tr>`;
-  }).join(''):'<tr><td colspan="6">Arizalar yo‘q</td></tr>';
+  const box=$('appsCards');if(!box)return;
+  const q=($('sellerSearch')?.value||'').toLowerCase();
+  let list=adminApps.slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+  if(q) list=list.filter(a=>[a.storeName,a.fullName,a.telegramUsername,a.phone].join(' ').toLowerCase().includes(q));
+  box.innerHTML=list.length?list.map(a=>{
+    const photo=a.photo?`<img src="${esc(a.photo)}" alt="">`:`<div class="seller-card-avatar">${esc((a.storeName||a.fullName||'A')[0])}</div>`;
+    const st=a.status==='pending'?'Kutilmoqda':a.status==='approved'?'Tasdiqlangan':'Rad etilgan';
+    const actions=a.status==='pending'?`
+      <button class="primary" data-app-approve="${esc(a.id)}" style="flex:1;padding:9px;border-radius:10px;font-size:12px">Tasdiqlash</button>
+      <button class="danger" data-app-reject="${esc(a.id)}" style="flex:1;padding:9px;border-radius:10px;font-size:12px">Rad etish</button>`:
+      `<span class="muted" style="font-size:12px">${esc(st)}${a.rejectReason?(' — '+esc(a.rejectReason)):''}</span>`;
+    return `<div class="seller-card">
+      <div class="seller-card-top">${photo}<div style="min-width:0"><h3>${esc(a.storeName||'Do‘kon')}</h3><div class="sub">${esc(a.fullName)} · ${esc(a.telegramUsername||'')}</div></div></div>
+      <div class="seller-card-meta">
+        <span class="badge-faol" style="${a.status!=='pending'&&a.status!=='approved'?'background:#ffe8e8;color:#b4232e':''}">${esc(st)}</span>
+        <span class="muted">${esc((a.createdAt||'').slice(0,10))}</span>
+        <span class="muted">${esc(a.phone||'')}</span>
+      </div>
+      <div class="seller-card-foot">${actions}
+        <button class="secondary" data-app-full="${esc(a.id)}" style="padding:9px 12px;border-radius:10px;font-size:12px;font-weight:800">To‘liq</button>
+      </div>
+    </div>`;
+  }).join(''):'<div class="muted" style="padding:20px">Arizalar yo‘q</div>';
 }
 function renderSellersTable(){
-  const body=$('sellersRows');if(!body)return;
+  const box=$('sellersCards');if(!box)return;
   const q=($('sellerSearch')?.value||'').toLowerCase();
   const f=$('sellerFilter')?.value||'all';
   let list=adminSellersList.slice();
   if(f==='active')list=list.filter(s=>s.status==='active');
   if(f==='frozen')list=list.filter(s=>s.status==='frozen');
-  if(q)list=list.filter(s=>[s.storeName,s.fullName,s.telegramUsername,s.phone].join(' ').toLowerCase().includes(q));
-  body.innerHTML=list.length?list.map((s,i)=>`<tr>
-    <td>${i+1}</td>
-    <td><b>${esc(s.storeName)}</b></td>
-    <td>${esc(s.fullName)}</td>
-    <td>${esc(s.telegramUsername||'—')}</td>
-    <td>${s.status==='frozen'?'<span class="badge-muz">Muzlatilgan</span>':'<span class="badge-faol">Faol</span>'}</td>
-    <td>${Number(s.productsCount)||0}</td>
-    <td>${moneyUZ(s.totalSales)}</td>
-    <td>${moneyUZ(s.debt)}</td>
-    <td><button class="secondary" data-seller-view="${esc(s.userId)}" style="padding:6px 10px;font-size:12px">Ko‘rish</button></td>
-  </tr>`).join(''):'<tr><td colspan="9">Tadbirkorlar yo‘q</td></tr>';
+  if(q)list=list.filter(s=>[s.storeName,s.fullName,s.telegramUsername,s.phone,s.login].join(' ').toLowerCase().includes(q));
+  box.innerHTML=list.length?list.map(s=>{
+    const photo=s.photo?`<img src="${esc(s.photo)}" alt="">`:`<div class="seller-card-avatar">${esc((s.storeName||'T')[0])}</div>`;
+    const online=isOnline(s.lastActiveAt);
+    return `<div class="seller-card">
+      <div class="seller-card-top">${photo}<div style="min-width:0"><h3>${esc(s.storeName||'Do‘kon')}</h3>
+        <div class="sub">${esc(s.fullName)} · ${esc(s.telegramUsername||s.login||'')}</div>
+        <div style="font-size:11px;font-weight:750;color:${online?'#3a9a20':'#85877f'};margin-top:3px">${online?'● Online':'○ Offline'}</div>
+      </div></div>
+      <div class="seller-card-meta">
+        ${s.status==='frozen'?'<span class="badge-muz">Muzlatilgan</span>':'<span class="badge-faol">Faol</span>'}
+        <span class="muted">${Number(s.productsCount)||0} mahsulot</span>
+        <span class="muted">Qarz: ${moneyUZ(s.debt)}</span>
+      </div>
+      <div class="seller-card-foot">
+        <button class="primary" data-seller-full="${esc(s.userId)}" style="flex:1;padding:10px;border-radius:11px;font-weight:850">To‘liq</button>
+      </div>
+    </div>`;
+  }).join(''):'<div class="muted" style="padding:20px">Tadbirkorlar yo‘q</div>';
 }
+
+let currentFullSeller=null;
+async function openSellerFull(userId){
+  const s=adminSellersList.find(x=>String(x.userId)===String(userId));
+  if(!s)return;
+  currentFullSeller=s;
+  const modal=$('sellerFullModal');
+  modal.classList.add('open');
+  modal.style.display='flex';
+  document.body.style.overflow='hidden';
+  const online=isOnline(s.lastActiveAt);
+  if(s.photo){$('sfPhoto').src=s.photo;$('sfPhoto').style.display='block'}
+  else{$('sfPhoto').style.display='none'}
+  $('sfStore').textContent=s.storeName||'Do‘kon';
+  $('sfOnline').textContent=online?'● Online':'○ Offline';
+  $('sfOnline').style.color=online?'#3a9a20':'#85877f';
+  $('sfProfileBody').innerHTML=`
+    <p style="margin:6px 0"><b>Ism:</b> ${esc(s.fullName)}</p>
+    <p style="margin:6px 0"><b>Telefon:</b> ${esc(s.phone||'—')}</p>
+    <p style="margin:6px 0"><b>Email:</b> ${esc(s.email||'—')}</p>
+    <p style="margin:6px 0"><b>Telegram:</b> ${esc(s.telegramUsername||'—')}</p>
+    <p style="margin:6px 0"><b>Login:</b> <code style="background:#eef8d4;padding:2px 8px;border-radius:6px">${esc(s.login||'Hali yaratilmagan')}</code></p>
+    <p style="margin:6px 0"><b>Holat:</b> ${s.status==='frozen'?'<span class="badge-muz">Muzlatilgan</span>':'<span class="badge-faol">Faol</span>'}</p>
+    <p style="margin:6px 0"><b>Tasdiqlangan:</b> ${esc((s.approvedAt||'').slice(0,16))}</p>
+    <p style="margin:6px 0"><b>Oxirgi faollik:</b> ${esc((s.lastActiveAt||'').slice(0,16)||'—')}</p>
+    ${s.freezeReason?`<p style="margin:6px 0;color:#b4232e"><b>Muzlatish sababi:</b> ${esc(s.freezeReason)}</p>`:''}
+  `;
+  $('sfStatsBody').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div style="background:#f4f6f1;border-radius:12px;padding:12px"><div class="muted" style="font-size:11px">Mahsulotlar</div><div style="font-weight:950;font-size:18px">${Number(s.productsCount)||0}</div></div>
+      <div style="background:#f4f6f1;border-radius:12px;padding:12px"><div class="muted" style="font-size:11px">Jami savdo</div><div style="font-weight:950;font-size:16px">${moneyUZ(s.totalSales)}</div></div>
+      <div style="background:#f4f6f1;border-radius:12px;padding:12px"><div class="muted" style="font-size:11px">Komissiya</div><div style="font-weight:950;font-size:16px">${moneyUZ(s.totalCommission)}</div></div>
+      <div style="background:#fff4d6;border-radius:12px;padding:12px"><div class="muted" style="font-size:11px">Qarz</div><div style="font-weight:950;font-size:16px">${moneyUZ(s.debt)}</div></div>
+    </div>
+  `;
+  $('sfActions').innerHTML=s.status==='frozen'
+    ?`<button class="primary" id="sfUnfreeze" style="border-radius:10px">Qayta faollashtirish</button>`
+    :`<button class="danger" id="sfFreeze" style="border-radius:10px">Hisobni muzlatish</button>`;
+  const freezeBtn=$('sfFreeze'),unfreezeBtn=$('sfUnfreeze');
+  if(freezeBtn)freezeBtn.onclick=async()=>{
+    const reason=prompt('Muzlatish sababi:')||'Admin tomonidan muzlatildi';
+    const r=await fetch('/api/admin/sellers/freeze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:s.userId,action:'freeze',reason})});
+    const d=await r.json();if(!r.ok){alert(d.error||'Xato');return}await loadSellerAdmin();openSellerFull(s.userId);
+  };
+  if(unfreezeBtn)unfreezeBtn.onclick=async()=>{
+    const r=await fetch('/api/admin/sellers/freeze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:s.userId,action:'unfreeze'})});
+    const d=await r.json();if(!r.ok){alert(d.error||'Xato');return}await loadSellerAdmin();openSellerFull(s.userId);
+  };
+  // products
+  const all=readArray(PRODUCT_KEY,[]);
+  const mine=(Array.isArray(all)?all:[]).filter(p=>String(p.sellerId)===String(s.userId));
+  $('sfProdCount').textContent=mine.length+' ta';
+  $('sfProducts').innerHTML=mine.length?mine.map(p=>`
+    <div class="product-card"><div class="product-image"><img src="${esc(p.image||'')}" alt=""></div>
+    <div class="product-body"><div class="product-name">${esc(p.name)}</div>
+    <div style="font-weight:800;margin:6px 0">${moneyUZ(p.price)}</div>
+    <button class="danger" data-del-seller-prod="${esc(p.id)}" style="width:100%">O‘chirish</button></div></div>`).join(''):'<p class="muted">Mahsulotlar yo‘q</p>';
+  $('sfProducts').querySelectorAll('[data-del-seller-prod]').forEach(btn=>{
+    btn.onclick=()=>{
+      if(!confirm('Mahsulot o‘chirilsinmi?'))return;
+      const list=readArray(PRODUCT_KEY,[]);
+      const next=list.filter(p=>String(p.id)!==btn.dataset.delSellerProd);
+      save(PRODUCT_KEY,next);
+      if(typeof products!=='undefined')products=next;
+      if(typeof renderProducts==='function')renderProducts();
+      btn.closest('.product-card')?.remove();
+      $('sfProdCount').textContent=$('sfProducts').querySelectorAll('.product-card').length+' ta';
+    };
+  });
+  $('sfMsgStatus').textContent='';
+}
+function openAppFull(appId){
+  const a=adminApps.find(x=>String(x.id)===String(appId));
+  if(!a)return;
+  // minimal: show in same modal style for application
+  currentFullSeller=null;
+  const modal=$('sellerFullModal');
+  modal.classList.add('open');modal.style.display='flex';
+  document.body.style.overflow='hidden';
+  if(a.photo){$('sfPhoto').src=a.photo;$('sfPhoto').style.display='block'}else $('sfPhoto').style.display='none';
+  $('sfStore').textContent=a.storeName||'Ariza';
+  $('sfOnline').textContent='Ariza · '+a.status;
+  $('sfOnline').style.color='#85877f';
+  $('sfProfileBody').innerHTML=`
+    <p style="margin:6px 0"><b>Ism:</b> ${esc(a.fullName)}</p>
+    <p style="margin:6px 0"><b>Telefon:</b> ${esc(a.phone)}</p>
+    <p style="margin:6px 0"><b>Email:</b> ${esc(a.email||'—')}</p>
+    <p style="margin:6px 0"><b>Telegram:</b> ${esc(a.telegramUsername||'—')}</p>
+    <p style="margin:6px 0"><b>Yuborilgan:</b> ${esc((a.createdAt||'').slice(0,16))}</p>
+    <p style="margin:6px 0"><b>3% rozilik:</b> ${a.agreedCommission?'Ha':'Yo‘q'}</p>
+    <p style="margin:6px 0"><b>Qo‘shimcha:</b> ${esc(a.extra||'—')}</p>
+  `;
+  $('sfStatsBody').innerHTML=`<p class="muted">Bu hali ariza. Tasdiqlangandan keyin statistika ochiladi.</p>`;
+  $('sfActions').innerHTML=a.status==='pending'?`
+    <button class="primary" id="sfAppApprove" style="border-radius:10px">Tasdiqlash</button>
+    <button class="danger" id="sfAppReject" style="border-radius:10px">Rad etish</button>`:'';
+  if($('sfAppApprove'))$('sfAppApprove').onclick=async()=>{
+    const r=await fetch('/api/admin/seller-applications/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:a.id,action:'approve'})});
+    const d=await r.json();if(!r.ok){alert(d.error||'Xato');return}closeSellerFull();await loadSellerAdmin();
+  };
+  if($('sfAppReject'))$('sfAppReject').onclick=async()=>{
+    const reason=prompt('Rad etish sababi:')||'';
+    const r=await fetch('/api/admin/seller-applications/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:a.id,action:'reject',reason})});
+    const d=await r.json();if(!r.ok){alert(d.error||'Xato');return}closeSellerFull();await loadSellerAdmin();
+  };
+  $('sfProducts').innerHTML='<p class="muted">Ariza bosqichida mahsulotlar yo‘q</p>';
+  $('sfProdCount').textContent='0 ta';
+}
+function closeSellerFull(){
+  const modal=$('sellerFullModal');
+  modal.classList.remove('open');modal.style.display='none';
+  document.body.style.overflow='';
+  currentFullSeller=null;
+}
+if($('sfClose'))$('sfClose').onclick=closeSellerFull;
+if($('sellerFullModal'))$('sellerFullModal').addEventListener('click',e=>{if(e.target===$('sellerFullModal'))closeSellerFull()});
+if($('sfSendMsg'))$('sfSendMsg').onclick=async()=>{
+  if(!currentFullSeller){alert('Avval tadbirkorni tanlang');return}
+  $('sfMsgStatus').textContent='Yuborilmoqda...';
+  try{
+    const r=await fetch('/api/admin/sellers/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      userId:currentFullSeller.userId,
+      title:$('sfMsgTitle').value.trim()||'Bildirishnoma',
+      body:$('sfMsgBody').value.trim(),
+      type:$('sfMsgType').value
+    })});
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.error||'Xato');
+    $('sfMsgStatus').textContent='Yuborildi ✓';
+    $('sfMsgBody').value='';
+  }catch(e){$('sfMsgStatus').textContent=e.message}
+};
+
 if($('tabApps'))$('tabApps').onclick=()=>{$('appsPanel').style.display='block';$('sellersPanel').style.display='none';$('tabApps').className='primary';$('tabSellers').className='secondary'};
 if($('tabSellers'))$('tabSellers').onclick=()=>{$('appsPanel').style.display='none';$('sellersPanel').style.display='block';$('tabSellers').className='primary';$('tabApps').className='secondary'};
-if($('sellerSearch'))$('sellerSearch').oninput=()=>renderSellersTable();
+if($('sellerSearch'))$('sellerSearch').oninput=()=>{renderAppsTable();renderSellersTable()};
 if($('sellerFilter'))$('sellerFilter').onchange=()=>renderSellersTable();
 if($('refreshSellers'))$('refreshSellers').onclick=()=>loadSellerAdmin();
-if($('appsRows'))$('appsRows').addEventListener('click',async e=>{
+if($('appsCards'))$('appsCards').addEventListener('click',async e=>{
   const ap=e.target.closest('[data-app-approve]');
   const rj=e.target.closest('[data-app-reject]');
+  const full=e.target.closest('[data-app-full]');
+  if(full){openAppFull(full.dataset.appFull);return}
   if(ap){
     if(!confirm('Arizani tasdiqlaysizmi?'))return;
     const r=await fetch('/api/admin/seller-applications/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:ap.dataset.appApprove,action:'approve'})});
@@ -936,66 +1153,11 @@ if($('appsRows'))$('appsRows').addEventListener('click',async e=>{
     const d=await r.json();if(!r.ok){alert(d.error||'Xato');return}await loadSellerAdmin();
   }
 });
-if($('sellersRows'))$('sellersRows').addEventListener('click',e=>{
-  const v=e.target.closest('[data-seller-view]');
-  if(!v)return;
-  const s=adminSellersList.find(x=>String(x.userId)===String(v.dataset.sellerView));
-  if(!s)return;
-  $('sellerDetail').style.display='block';
-  $('sdTitle').textContent=s.storeName||'Tadbirkor';
-  $('sdBody').innerHTML=`
-    ${s.photo?`<img src="${esc(s.photo)}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;margin-bottom:10px">`:''}
-    <p><b>Ism:</b> ${esc(s.fullName)}</p>
-    <p><b>Telefon:</b> ${esc(s.phone)}</p>
-    <p><b>Email:</b> ${esc(s.email||'—')}</p>
-    <p><b>Telegram:</b> ${esc(s.telegramUsername||'—')}</p>
-    <p><b>Holat:</b> ${esc(s.status)}</p>
-    <p><b>Mahsulotlar:</b> ${Number(s.productsCount)||0}</p>
-    <p><b>Jami savdo:</b> ${moneyUZ(s.totalSales)}</p>
-    <p><b>Komissiya qarzi:</b> ${moneyUZ(s.debt)}</p>
-    <p><b>Tasdiqlangan:</b> ${esc((s.approvedAt||'').slice(0,16))}</p>
-    <p><b>Oxirgi faollik:</b> ${esc((s.lastActiveAt||'').slice(0,16))}</p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
-      ${s.status==='frozen'
-        ?`<button class="primary" id="sdUnfreeze">Qayta faollashtirish</button>`
-        :`<button class="danger" id="sdFreeze">Hisobni muzlatish</button>`}
-      <button class="secondary" id="sdProducts">Mahsulotlarini ko‘rish</button>
-    </div>
-    <div id="sdProductsList" style="margin-top:14px"></div>
-  `;
-  const freezeBtn=$('sdFreeze'),unfreezeBtn=$('sdUnfreeze');
-  if(freezeBtn)freezeBtn.onclick=async()=>{
-    const reason=prompt('Muzlatish sababi:')||'Admin tomonidan muzlatildi';
-    const r=await fetch('/api/admin/sellers/freeze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:s.userId,action:'freeze',reason})});
-    const d=await r.json();if(!r.ok){alert(d.error||'Xato');return}await loadSellerAdmin();v.click();
-  };
-  if(unfreezeBtn)unfreezeBtn.onclick=async()=>{
-    const r=await fetch('/api/admin/sellers/freeze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:s.userId,action:'unfreeze'})});
-    const d=await r.json();if(!r.ok){alert(d.error||'Xato');return}await loadSellerAdmin();v.click();
-  };
-  if($('sdProducts'))$('sdProducts').onclick=async()=>{
-    const all=readArray(PRODUCT_KEY,[]);
-    const mine=(Array.isArray(all)?all:[]).filter(p=>String(p.sellerId)===String(s.userId));
-    $('sdProductsList').innerHTML=mine.length?`<div class="product-grid">`+mine.map(p=>`
-      <div class="product-card"><div class="product-image"><img src="${esc(p.image||'')}" alt=""></div>
-      <div class="product-body"><div class="product-name">${esc(p.name)}</div>
-      <div style="font-weight:800;margin:6px 0">${moneyUZ(p.price)}</div>
-      <button class="danger" data-del-seller-prod="${esc(p.id)}" style="width:100%">O‘chirish</button></div></div>`).join('')+`</div>`:'<p class="muted">Mahsulotlar yo‘q</p>';
-    $('sdProductsList').querySelectorAll('[data-del-seller-prod]').forEach(btn=>{
-      btn.onclick=()=>{
-        if(!confirm('Mahsulot o‘chirilsinmi?'))return;
-        const list=readArray(PRODUCT_KEY,[]);
-        const next=(Array.isArray(list)?list:[]).filter(p=>String(p.id)!==btn.dataset.delSellerProd);
-        save(PRODUCT_KEY,next);
-        products=next;
-        renderProducts&&renderProducts();
-        btn.closest('.product-card')?.remove();
-      };
-    });
-  };
+if($('sellersCards'))$('sellersCards').addEventListener('click',e=>{
+  const v=e.target.closest('[data-seller-full]');
+  if(v) openSellerFull(v.dataset.sellerFull);
 });
-if($('sdClose'))$('sdClose').onclick=()=>$('sellerDetail').style.display='none';
-// load when opening sellers section
+
 const _origShow=showSection;
 showSection=function(id){_origShow(id);if(id==='sellers')loadSellerAdmin()};
 

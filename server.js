@@ -18,7 +18,8 @@ const ALLOWED = new Set([
   // Seller marketplace keys
   'shoply_seller_applications_v1',
   'shoply_sellers_v1',
-  'shoply_commission_log_v1'
+  'shoply_commission_log_v1',
+  'shoply_seller_messages_v1'
 ]);
 
 const mime = {
@@ -144,12 +145,14 @@ async function putApplications(list) {
 }
 
 async function getCommissionLog() {
-  const x = await getOne('shoply_commission_log_v1');
+  const x = await getOne('shoply_commission_log_v1',
+  'shoply_seller_messages_v1');
   return Array.isArray(x.value) ? x.value : [];
 }
 
 async function putCommissionLog(list) {
-  await putOne('shoply_commission_log_v1', list);
+  await putOne('shoply_commission_log_v1',
+  'shoply_seller_messages_v1', list);
 }
 
 async function getProducts() {
@@ -917,6 +920,56 @@ http.createServer(async (req, res) => {
       seller.passwordSetAt = nowISO();
       await putSellers(sellers);
       return send(res, 200, { ok: true, message: 'Parol yangilandi' });
+    }
+
+
+    // ========== SELLER MESSAGES / ADMIN NOTIFY ==========
+    if (p === '/api/admin/sellers/notify' && req.method === 'POST') {
+      const b = await readBody(req);
+      const userId = sanitizeStr(b.userId, 80);
+      const title = sanitizeStr(b.title, 120) || 'Bildirishnoma';
+      const body = sanitizeStr(b.body, 2000);
+      const type = sanitizeStr(b.type, 30) || 'info'; // info | warning | sms
+      if (!userId || !body) return send(res, 400, { error: 'userId va xabar matni kerak' });
+      const sellers = await getSellers();
+      if (!findSeller(sellers, userId)) return send(res, 404, { error: 'Tadbirkor topilmadi' });
+      const item = await getOne('shoply_seller_messages_v1');
+      const all = item.value && typeof item.value === 'object' && !Array.isArray(item.value) ? item.value : {};
+      const list = Array.isArray(all[userId]) ? all[userId] : [];
+      const msg = {
+        id: `MSG-${Date.now()}`,
+        title,
+        body,
+        type,
+        from: 'admin',
+        createdAt: nowISO(),
+        read: false
+      };
+      all[userId] = [msg, ...list].slice(0, 500);
+      await putOne('shoply_seller_messages_v1', all);
+      return send(res, 201, { ok: true, message: msg });
+    }
+
+    if (p === '/api/seller/messages' && req.method === 'GET') {
+      const userId = sanitizeStr(u.searchParams.get('userId'), 80);
+      if (!userId) return send(res, 400, { error: 'userId kerak' });
+      const item = await getOne('shoply_seller_messages_v1');
+      const all = item.value && typeof item.value === 'object' && !Array.isArray(item.value) ? item.value : {};
+      const list = Array.isArray(all[userId]) ? all[userId] : [];
+      return send(res, 200, list);
+    }
+
+    if (p === '/api/seller/messages/read' && req.method === 'POST') {
+      const b = await readBody(req);
+      const userId = sanitizeStr(b.userId, 80);
+      const msgId = sanitizeStr(b.messageId, 80);
+      if (!userId) return send(res, 400, { error: 'userId kerak' });
+      const item = await getOne('shoply_seller_messages_v1');
+      const all = item.value && typeof item.value === 'object' && !Array.isArray(item.value) ? item.value : {};
+      const list = Array.isArray(all[userId]) ? all[userId] : [];
+      all[userId] = list.map(m => (msgId && String(m.id) !== msgId ? m : { ...m, read: true }));
+      await putOne('shoply_seller_messages_v1', all);
+      return send(res, 200, { ok: true });
     }
 
     // Reviews (unchanged)
