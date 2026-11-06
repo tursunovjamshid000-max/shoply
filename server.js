@@ -2,6 +2,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const PORT = Number(process.env.PORT || 10000);
 const SUPABASE_URL = String(process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
@@ -240,6 +241,25 @@ async function applyCommissionForOrder(order) {
   return { applied: any, entries };
 }
 
+
+function hashPassword(password, salt) {
+  salt = salt || crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(String(password), salt, 64).toString('hex');
+  return { salt, hash };
+}
+function verifyPassword(password, salt, hash) {
+  if (!salt || !hash) return false;
+  const h = crypto.scryptSync(String(password), salt, 64).toString('hex');
+  try {
+    return crypto.timingSafeEqual(Buffer.from(h, 'hex'), Buffer.from(hash, 'hex'));
+  } catch {
+    return false;
+  }
+}
+function makeSessionToken() {
+  return crypto.randomBytes(24).toString('hex');
+}
+
 http.createServer(async (req, res) => {
   const u = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const p = u.pathname;
@@ -429,9 +449,20 @@ http.createServer(async (req, res) => {
       const seller = findSeller(sellers, userId);
       const myApps = apps.filter(a => String(a.userId) === userId).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
       const latest = myApps[0] || null;
+      const safeSeller = seller ? {
+        userId: seller.userId,
+        storeName: seller.storeName,
+        fullName: seller.fullName,
+        status: seller.status,
+        login: seller.login || null,
+        hasPassword: !!(seller.passwordHash),
+        approvedAt: seller.approvedAt,
+        debt: seller.debt || 0,
+        photo: seller.photo || ''
+      } : null;
       return send(res, 200, {
         application: latest,
-        seller: seller || null,
+        seller: safeSeller,
         isSeller: !!(seller && (seller.status === 'active' || seller.status === 'frozen'))
       });
     }
@@ -743,6 +774,149 @@ http.createServer(async (req, res) => {
     if (p === '/api/admin/commissions' && req.method === 'GET') {
       const log = await getCommissionLog();
       return send(res, 200, log);
+    }
+
+
+    // ========== SELLER AUTH (login / set password) ==========
+    if (p === '/api/seller/set-password' && req.method === 'POST') {
+      const b = await readBody(req);
+      const userId = sanitizeStr(b.userId, 80);
+      const login = sanitizeStr(b.login, 60).toLowerCase();
+      const password = String(b.password || '');
+      const password2 = String(b.password2 || '');
+      if (!userId || userId === 'guest') return send(res, 400, { error: 'Telegram orqali kiring' });
+      if (!login || login.length < 3) return send(res, 400, { error: 'Login kamida 3 belgi bo‘lsin' });
+      if (password.length < 6) return send(res, 400, { error: 'Parol kamida 6 belgi bo‘lsin' });
+      if (password !== password2) return send(res, 400, { error: 'Parollar mos kelmadi' });
+
+      const sellers = await getSellers();
+      const seller = findSeller(sellers, userId);
+      if (!seller) return send(res, 403, { error: 'Siz tasdiqlangan tadbirkor emassiz' });
+
+      // unique login
+      if (sellers.some(s => String(s.login || '').toLowerCase() === login && String(s.userId) !== String(userId))) {
+        return send(res, 400, { error: 'Bu login band. Boshqa login tanlang.' });
+      }
+
+      const { salt, hash } = hashPassword(password);
+      seller.login = login;
+      seller.passwordSalt = salt;
+      seller.passwordHash = hash;
+      seller.passwordSetAt = nowISO();
+      // clear any plain leftovers
+      delete seller.password;
+      const token = makeSessionToken();
+      seller.sessionToken = token;
+      seller.sessionAt = nowISO();
+      await putSellers(sellers);
+      return send(res, 200, {
+        ok: true,
+        message: 'Login va parol saqlandi',
+        token,
+        seller: {
+          userId: seller.userId,
+          login: seller.login,
+          storeName: seller.storeName,
+          fullName: seller.fullName,
+          status: seller.status,
+          hasPassword: true
+        }
+      });
+    }
+
+    if (p === '/api/seller/login' && req.method === 'POST') {
+      const b = await readBody(req);
+      const login = sanitizeStr(b.login, 60).toLowerCase();
+      const password = String(b.password || '');
+      if (!login || !password) return send(res, 400, { error: 'Login va parol kerak' });
+
+      const sellers = await getSellers();
+      const seller = sellers.find(s => String(s.login || '').toLowerCase() === login);
+      if (!seller || !seller.passwordHash) {
+        return send(res, 401, { error: 'Login yoki parol noto‘g‘ri' });
+      }
+      if (!verifyPassword(password, seller.passwordSalt, seller.passwordHash)) {
+        return send(res, 401, { error: 'Login yoki parol noto‘g‘ri' });
+      }
+      const token = makeSessionToken();
+      seller.sessionToken = token;
+      seller.sessionAt = nowISO();
+      seller.lastActiveAt = nowISO();
+      await putSellers(sellers);
+      return send(res, 200, {
+        ok: true,
+        token,
+        seller: {
+          userId: seller.userId,
+          login: seller.login,
+          storeName: seller.storeName,
+          fullName: seller.fullName,
+          status: seller.status,
+          photo: seller.photo || '',
+          debt: seller.debt || 0,
+          hasPassword: true
+        }
+      });
+    }
+
+    if (p === '/api/seller/session' && req.method === 'GET') {
+      const token = sanitizeStr(u.searchParams.get('token') || req.headers['x-seller-token'], 80);
+      const userId = sanitizeStr(u.searchParams.get('userId'), 80);
+      if (!token && !userId) return send(res, 400, { error: 'token yoki userId kerak' });
+      const sellers = await getSellers();
+      let seller = null;
+      if (token) seller = sellers.find(s => s.sessionToken && s.sessionToken === token);
+      if (!seller && userId) seller = findSeller(sellers, userId);
+      if (!seller) return send(res, 401, { error: 'Sessiya topilmadi' });
+      ensureSellerStats(seller);
+      const products = await getProducts();
+      seller.productsCount = products.filter(pr => String(pr.sellerId) === String(seller.userId)).length;
+      return send(res, 200, {
+        userId: seller.userId,
+        login: seller.login || null,
+        hasPassword: !!(seller.passwordHash),
+        storeName: seller.storeName,
+        fullName: seller.fullName,
+        phone: seller.phone,
+        email: seller.email,
+        telegramUsername: seller.telegramUsername,
+        photo: seller.photo || '',
+        status: seller.status,
+        debt: seller.debt,
+        totalSales: seller.totalSales,
+        totalCommission: seller.totalCommission,
+        paidCommission: seller.paidCommission,
+        productsCount: seller.productsCount,
+        approvedAt: seller.approvedAt,
+        lastActiveAt: seller.lastActiveAt,
+        freezeReason: seller.freezeReason || ''
+      });
+    }
+
+    if (p === '/api/seller/change-password' && req.method === 'POST') {
+      const b = await readBody(req);
+      const userId = sanitizeStr(b.userId, 80);
+      const token = sanitizeStr(b.token, 80);
+      const oldPassword = String(b.oldPassword || '');
+      const password = String(b.password || '');
+      const password2 = String(b.password2 || '');
+      if (password.length < 6) return send(res, 400, { error: 'Yangi parol kamida 6 belgi' });
+      if (password !== password2) return send(res, 400, { error: 'Parollar mos kelmadi' });
+      const sellers = await getSellers();
+      const seller = findSeller(sellers, userId);
+      if (!seller) return send(res, 403, { error: 'Tadbirkor topilmadi' });
+      if (seller.passwordHash) {
+        if (!verifyPassword(oldPassword, seller.passwordSalt, seller.passwordHash) &&
+            !(token && seller.sessionToken === token)) {
+          return send(res, 401, { error: 'Eski parol noto‘g‘ri' });
+        }
+      }
+      const { salt, hash } = hashPassword(password);
+      seller.passwordSalt = salt;
+      seller.passwordHash = hash;
+      seller.passwordSetAt = nowISO();
+      await putSellers(sellers);
+      return send(res, 200, { ok: true, message: 'Parol yangilandi' });
     }
 
     // Reviews (unchanged)

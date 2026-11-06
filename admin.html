@@ -159,6 +159,22 @@ th{color:var(--muted);font-size:11px}
   .main{padding-bottom:30px!important}
 }
 
+
+/* Seller admin modern */
+#sellers .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+#sellers .stat{border-radius:16px;padding:16px;background:#fff;border:1px solid var(--line);box-shadow:0 8px 28px rgba(20,30,10,.05)}
+#sellers .stat-value{font-size:24px;font-weight:950;letter-spacing:-.4px}
+#sellers .stat-label{font-size:12px;color:var(--muted);font-weight:650}
+#sellers .panel{border-radius:18px}
+#sellers table th{font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted)}
+#sellers .badge-faol{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;background:#eef8d4;color:#2f5a10;font-size:11px;font-weight:800}
+#sellers .badge-faol:before{content:"";width:6px;height:6px;border-radius:50%;background:#3a9a20}
+#sellers .badge-muz{display:inline-flex;padding:4px 10px;border-radius:999px;background:#ffe8e8;color:#b4232e;font-size:11px;font-weight:800}
+@media(max-width:700px){
+  #sellers .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #sellers table{min-width:720px}
+}
+
 </style>
 
 <style id="shoply-final-layout-fix">
@@ -894,7 +910,7 @@ function renderSellersTable(){
     <td><b>${esc(s.storeName)}</b></td>
     <td>${esc(s.fullName)}</td>
     <td>${esc(s.telegramUsername||'—')}</td>
-    <td>${esc(s.status)}</td>
+    <td>${s.status==='frozen'?'<span class="badge-muz">Muzlatilgan</span>':'<span class="badge-faol">Faol</span>'}</td>
     <td>${Number(s.productsCount)||0}</td>
     <td>${moneyUZ(s.totalSales)}</td>
     <td>${moneyUZ(s.debt)}</td>
