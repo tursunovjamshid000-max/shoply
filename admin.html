@@ -914,6 +914,27 @@ async function renderOrders(){
 async function renderReviews(){const box=$('reviewsList');box.innerHTML='<p class="muted">Sharhlar yuklanmoqda...</p>';try{const r=await fetch('/api/state/shoply_reviews_v1',{cache:'no-store'});const d=await r.json();const data=d.value||{};const rows=[];Object.entries(data).forEach(([id,list])=>(Array.isArray(list)?list:[]).forEach(v=>rows.push({...v,productId:id})));const avg=rows.length?rows.reduce((a,b)=>a+(Number(b.rating)||5),0)/rows.length:0;$('reviewsTotal').textContent=rows.length;$('reviewsAverage').textContent=rows.length?avg.toFixed(1)+'/5':'—';box.innerHTML=rows.length?rows.slice().reverse().map(v=>`<article style="padding:14px 0;border-bottom:1px solid var(--line)"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><b>${esc(v.name||'Xaridor')}</b><span style="color:#d69b20">${'★'.repeat(Number(v.rating)||5)}${'☆'.repeat(5-(Number(v.rating)||5))}</span></div><div class="muted">Mahsulot ID: ${esc(v.productId)} · ${esc(v.createdAt||'')}</div><p>${esc(v.text||'')}</p></article>`).join(''):'<p class="muted">Hozircha sharhlar yo‘q.</p>'}catch{box.innerHTML='<p class="muted">Sharhlarni yuklab bo‘lmadi.</p>'}}
 $('refreshOrders').onclick=renderOrders;$('refreshReviews').onclick=renderReviews;
 
+
+async function loadAdminNotifications(){
+  try{
+    const r=await fetch('/api/admin/notifications',{cache:'no-store'});
+    const list=r.ok?await r.json():[];
+    let box=$('adminNotifBox');
+    if(!box){
+      const dash=$('dashboard');
+      if(!dash)return;
+      box=document.createElement('div');
+      box.id='adminNotifBox';
+      box.className='panel';
+      box.style.marginBottom='16px';
+      dash.insertBefore(box, dash.firstChild);
+    }
+    const unread=list.filter(n=>!n.read).slice(0,15);
+    box.innerHTML=`<div class="toolbar"><h2>🔔 Bildirishnomalar</h2><span class="muted">${list.length} ta</span></div>`+
+      (unread.length?unread.map(n=>`<div style="padding:10px 0;border-bottom:1px solid var(--line)"><b>${esc(n.title||'')}</b><div class="muted" style="font-size:12px">${esc((n.createdAt||'').slice(0,16))}</div><div style="font-size:13px;margin-top:4px">${esc(n.body||'')}${n.sellers&&n.sellers.length?' · 🏪 '+esc(n.sellers.join(', ')):''}</div></div>`).join(''):'<p class="muted">Yangi bildirishnoma yo‘q</p>');
+  }catch(e){}
+}
+
 function showSection(id){
  document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active',s.id===id));
  document.querySelectorAll('[data-section]').forEach(b=>b.classList.toggle('active',b.dataset.section===id));
@@ -1172,7 +1193,7 @@ if($('sellersCards'))$('sellersCards').addEventListener('click',e=>{
 });
 
 const _origShow=showSection;
-showSection=function(id){_origShow(id);if(id==='sellers')loadSellerAdmin()};
+showSection=function(id){_origShow(id);if(id==='sellers')loadSellerAdmin();if(id==='dashboard')loadAdminNotifications()};setTimeout(loadAdminNotifications,600);;
 
 $('headerAdd').onclick=()=>openProduct();
 $('addProduct').onclick=()=>openProduct();

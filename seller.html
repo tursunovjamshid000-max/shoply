@@ -404,10 +404,52 @@ function renderProducts(){
 function renderOrders(){
   $('ordersRows').innerHTML=myOrders.map(o=>{
     const items=(o.items||[]).map(i=>`${esc(i.name)} × ${i.quantity}`).join('<br>');
+    const conf=(o.sellerConfirmations&&o.sellerConfirmations[seller.userId])||'';
     const opts=['Yangi','Jarayonda','Yetkazilmoqda','Yetkazildi','Bekor qilindi'];
     const sel=opts.map(s=>`<option value="${s}" ${o.status===s?'selected':''}>${s}</option>`).join('');
-    return `<tr><td><b>${esc(o.id)}</b><br><span class="muted">${esc((o.createdAt||'').slice(0,16))}</span></td><td>${esc(o.name)}<br>${esc(o.phone||'')}<br><span class="muted">${esc(o.address||'')}</span></td><td>${items}</td><td><span class="badge">${esc(o.status||'')}</span></td><td><select data-oid="${esc(o.id)}" class="field" style="margin:0;padding:8px;min-width:130px">${sel}</select></td></tr>`}).join('')||'<tr><td colspan="5" class="empty">Buyurtmalar yo‘q</td></tr>';
-  $('ordersRows').querySelectorAll('select[data-oid]').forEach(sel=>{sel.onchange=async()=>{sel.disabled=true;try{const r=await fetch('/api/seller/orders/status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:seller.userId,orderId:sel.dataset.oid,status:sel.value})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Xato');await loadOrders();await loadSellerData();await loadCommissions()}catch(e){alert(e.message)}finally{sel.disabled=false}}});
+    let confirmUi='';
+    if(!conf){
+      confirmUi=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+        <button type="button" class="btn btn-accent btn-sm" data-confirm-yes="${esc(o.id)}">Ha — tasdiqlash</button>
+        <button type="button" class="btn btn-danger btn-sm" data-confirm-no="${esc(o.id)}">Yo‘q</button>
+      </div><div class="muted" style="font-size:11px;margin-top:4px">Mijoz rasmiylashtirdi. Tasdiqlasangiz 3% qarzga yoziladi.</div>`;
+    }else if(conf==='confirmed'){
+      confirmUi='<span class="badge" style="margin-top:6px">✓ Tasdiqlangan (3% hisoblangan)</span>';
+    }else{
+      confirmUi='<span class="badge frozen" style="margin-top:6px">Rad etilgan</span>';
+    }
+    return `<tr>
+      <td><b>${esc(o.id)}</b><br><span class="muted">${esc((o.createdAt||'').slice(0,16))}</span>${confirmUi}</td>
+      <td>${esc(o.name)}<br>${esc(o.phone||'')}<br><span class="muted">${esc(o.address||'')}</span></td>
+      <td>${items}</td>
+      <td><span class="badge">${esc(o.status||'')}</span></td>
+      <td><select data-oid="${esc(o.id)}" class="field" style="margin:0;padding:8px;min-width:130px">${sel}</select></td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="5" class="empty">Buyurtmalar yo‘q</td></tr>';
+  $('ordersRows').querySelectorAll('select[data-oid]').forEach(sel=>{
+    sel.onchange=async()=>{
+      sel.disabled=true;
+      try{
+        const r=await fetch('/api/seller/orders/status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:seller.userId,orderId:sel.dataset.oid,status:sel.value})});
+        const d=await r.json();if(!r.ok)throw new Error(d.error||'Xato');
+        await loadOrders();await loadSellerData();await loadCommissions();
+      }catch(e){alert(e.message||'Xatolik')}
+      finally{sel.disabled=false}
+    };
+  });
+  $('ordersRows').querySelectorAll('[data-confirm-yes],[data-confirm-no]').forEach(btn=>{
+    btn.onclick=async()=>{
+      const yes=btn.hasAttribute('data-confirm-yes');
+      const oid=btn.getAttribute('data-confirm-yes')||btn.getAttribute('data-confirm-no');
+      if(yes && !confirm('Tasdiqlaysizmi? 3% komissiya qarzingizga yoziladi.'))return;
+      btn.disabled=true;
+      try{
+        const r=await fetch('/api/seller/orders/confirm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:seller.userId,orderId:oid,confirm:yes})});
+        const d=await r.json();if(!r.ok)throw new Error(d.error||'Xato');
+        await loadOrders();await loadSellerData();await loadCommissions();await loadMessages();
+      }catch(e){alert(e.message||'Xato')}
+    };
+  });
 }
 function renderDebt(){
   if(!seller)return;$('debtSales').textContent=money(seller.totalSales);$('debtTotal').textContent=money(seller.totalCommission);$('debtNow').textContent=money(seller.debt);
