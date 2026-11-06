@@ -1178,6 +1178,93 @@ http.createServer(async (req, res) => {
       return send(res, 200, { ok: true });
     }
 
+    // Tadbirkor admin ga javob
+    if (p === '/api/seller/messages/reply' && req.method === 'POST') {
+      const b = await readBody(req);
+      const userId = sanitizeStr(b.userId, 80);
+      const body = sanitizeStr(b.body, 2000);
+      const token = sanitizeStr(b.token || req.headers['x-seller-token'], 80);
+      if (!userId || !body) return send(res, 400, { error: 'userId va xabar kerak' });
+      const sellers = await getSellers();
+      const seller = findSeller(sellers, userId);
+      if (!seller) return send(res, 403, { error: 'Tadbirkor emassiz' });
+      if (seller.passwordHash && (!token || seller.sessionToken !== token)) {
+        return send(res, 401, { error: 'Sessiya muddati tugagan' });
+      }
+      const item = await getOne('shoply_seller_messages_v1');
+      const all = item.value && typeof item.value === 'object' && !Array.isArray(item.value) ? item.value : {};
+      const list = Array.isArray(all[userId]) ? all[userId] : [];
+      const msg = {
+        id: `MSG-${Date.now()}`,
+        title: 'Javob',
+        body,
+        type: 'chat',
+        from: 'seller',
+        createdAt: nowISO(),
+        read: false
+      };
+      all[userId] = [msg, ...list].slice(0, 500);
+      await putOne('shoply_seller_messages_v1', all);
+      const nick = sellerOfficialNick(seller);
+      await pushAdminNotification({
+        type: 'seller_reply',
+        title: 'Tadbirkordan javob',
+        body: `${nick || userId}: ${body.slice(0, 200)}`,
+        officialNick: nick,
+        sellerId: userId
+      });
+      return send(res, 201, { ok: true, message: msg });
+    }
+
+    // Admin: barcha chatlar
+    if (p === '/api/admin/chats' && req.method === 'GET') {
+      const item = await getOne('shoply_seller_messages_v1');
+      const all = item.value && typeof item.value === 'object' && !Array.isArray(item.value) ? item.value : {};
+      const sellers = await getSellers();
+      const chats = Object.keys(all).map(uid => {
+        const list = Array.isArray(all[uid]) ? all[uid] : [];
+        const last = list[0] || null;
+        const s = findSeller(sellers, uid);
+        const unread = list.filter(m => m.from === 'seller' && !m.read).length;
+        return {
+          userId: uid,
+          nick: sellerOfficialNick(s) || uid,
+          storeName: s ? (s.storeName || '') : '',
+          status: s ? s.status : '',
+          lastMessage: last ? { body: last.body, from: last.from, createdAt: last.createdAt, type: last.type } : null,
+          unread,
+          count: list.length
+        };
+      }).filter(c => c.count > 0).sort((a, b) => String((b.lastMessage && b.lastMessage.createdAt) || '').localeCompare(String((a.lastMessage && a.lastMessage.createdAt) || '')));
+      return send(res, 200, chats);
+    }
+
+    if (p === '/api/admin/chats/thread' && req.method === 'GET') {
+      const userId = sanitizeStr(u.searchParams.get('userId'), 80);
+      if (!userId) return send(res, 400, { error: 'userId kerak' });
+      const item = await getOne('shoply_seller_messages_v1');
+      const all = item.value && typeof item.value === 'object' && !Array.isArray(item.value) ? item.value : {};
+      const list = Array.isArray(all[userId]) ? all[userId] : [];
+      let changed = false;
+      const next = list.map(m => {
+        if (m.from === 'seller' && !m.read) { changed = true; return { ...m, read: true }; }
+        return m;
+      });
+      if (changed) {
+        all[userId] = next;
+        await putOne('shoply_seller_messages_v1', all);
+      }
+      const sellers = await getSellers();
+      const s = findSeller(sellers, userId);
+      return send(res, 200, {
+        userId,
+        nick: sellerOfficialNick(s) || userId,
+        storeName: s ? (s.storeName || '') : '',
+        messages: [...next].reverse()
+      });
+    }
+
+
 
     if (p === '/api/seller/profile' && req.method === 'POST') {
       const b = await readBody(req);

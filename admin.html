@@ -179,6 +179,7 @@ th{color:var(--muted);font-size:11px}
 #sellers{max-width:100%;overflow-x:hidden}
 #sellers .panel{max-width:100%;overflow:hidden}
 #sellersCards,#appsCards{max-width:100%;width:100%;box-sizing:border-box}
+@media(max-width:800px){#chatLayout{grid-template-columns:1fr!important;max-height:none!important}#chatList{max-height:180px}}
 @media(max-width:700px){#xabarlar .panel [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}}
 .seller-card{max-width:100%;min-width:0;overflow:hidden}
 .seller-card h3,.seller-card .sub{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
@@ -244,9 +245,6 @@ body[data-admin-theme="classic"] .nav.active{background:var(--accent);color:#171
 html,body{max-width:100%;overflow-x:hidden!important}
 @media(max-width:700px){.sidebar{position:fixed!important;top:0!important;bottom:0!important;left:0!important;right:auto!important;height:100dvh!important;max-height:100dvh!important;overflow:hidden!important;overscroll-behavior:none!important;box-sizing:border-box!important}.layout,.main{max-width:100%;min-width:0;overflow-x:hidden!important}.admin-scrim{position:fixed!important;inset:0!important}}
 </style>
-<div id="adminGate"><div class="gate-card"><div style="font-size:28px;font-weight:950;letter-spacing:2px;margin-bottom:18px">SHOPLY<span style="color:#8ba925">.</span></div><h1>Admin panel</h1><p>Do‘kon boshqaruviga kirish uchun login va parolni kiriting.</p><label>Login</label><input id="gateLogin" name="shoply_user_field_20261031" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" data-lpignore="true" data-1p-ignore="true" readonly onpointerdown="this.removeAttribute('readonly')" placeholder="Loginni kiriting"><label>Parol</label><input id="gatePassword" name="shoply_pass_field_20261031" type="password" autocomplete="new-password" data-lpignore="true" data-1p-ignore="true" readonly onpointerdown="this.removeAttribute('readonly')" placeholder="Parolni kiriting"><p id="gateError" style="color:#c33"></p><button id="gateSubmit">Kirish →</button><p style="text-align:center;margin-bottom:0">SHOPLY boshqaruv tizimi</p></div></div>
-
-
 <!-- SHOPLY admin: oddiy kirish, token tekshiruvisiz -->
 
 <div class="layout">
@@ -460,39 +458,59 @@ html,body{max-width:100%;overflow-x:hidden!important}
 #sellerFullModal.open{display:flex!important}
 </style>
 <section class="section" id="xabarlar">
-  <div class="toolbar"><h2>💬 Xabarlar</h2><button class="secondary" type="button" id="refreshXabarlar">Yangilash</button></div>
-  <p class="muted" style="margin:0 0 14px">Rasmiylashtirish, tasdiq/rad va tizim xabarlari. Bu yerda tadbirkorga ham xabar yuborishingiz mumkin.</p>
-  <div class="panel" style="margin-bottom:16px">
-    <h3 style="margin:0 0 12px;font-size:15px;font-weight:900">📤 Tadbirkorga xabar yuborish</h3>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div>
-        <label class="muted" style="display:block;margin-bottom:6px;font-size:12px;font-weight:700">Tadbirkorni tanlang</label>
-        <select class="field" id="msgSellerSelect" style="margin:0"><option value="">— Tanlang —</option></select>
-      </div>
-      <div>
-        <label class="muted" style="display:block;margin-bottom:6px;font-size:12px;font-weight:700">Turi</label>
-        <select class="field" id="msgTypeSelect" style="margin:0">
-          <option value="info">Info</option>
-          <option value="warning">Ogohlantirish</option>
-          <option value="sms">SMS / Muhim</option>
-        </select>
-      </div>
-    </div>
-    <label class="muted" style="display:block;margin:10px 0 6px;font-size:12px;font-weight:700">Sarlavha</label>
-    <input class="field" id="msgTitleInput" placeholder="Masalan: Ogohlantirish" style="margin:0">
-    <label class="muted" style="display:block;margin:10px 0 6px;font-size:12px;font-weight:700">Xabar matni</label>
-    <textarea class="field" id="msgBodyInput" rows="3" placeholder="Xabar matnini yozing..." style="margin:0"></textarea>
-    <div style="display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap">
-      <button class="primary" type="button" id="msgSendBtn">Yuborish</button>
-      <span class="muted" id="msgSendStatus" style="font-size:13px"></span>
+  <div class="toolbar" style="margin-bottom:12px">
+    <h2 style="margin:0">💬 Xabarlar</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="primary" type="button" id="tabNotif" style="padding:9px 16px;border-radius:999px">Kelgan xabarlar</button>
+      <button class="secondary" type="button" id="tabChats" style="padding:9px 16px;border-radius:999px">Chatlar</button>
+      <button class="secondary" type="button" id="refreshXabarlar">Yangilash</button>
     </div>
   </div>
-  <div class="panel">
-    <div class="toolbar" style="margin-bottom:8px"><h3 style="margin:0;font-size:15px">📥 Kelgan xabarlar</h3><button class="secondary" type="button" id="markAllNotifRead" style="padding:8px 12px">Hammasini o‘qildi</button></div>
-    <div id="xabarlarList"><p class="muted">Yuklanmoqda...</p></div>
+
+  <div id="xabarNotifPane">
+    <div class="panel">
+      <div class="toolbar" style="margin-bottom:8px"><h3 style="margin:0;font-size:15px">📥 Tizim xabarlari</h3><button class="secondary" type="button" id="markAllNotifRead" style="padding:8px 12px">Hammasini o‘qildi</button></div>
+      <div id="xabarlarList"><p class="muted">Yuklanmoqda...</p></div>
+    </div>
+  </div>
+
+  <div id="xabarChatPane" style="display:none">
+    <div class="panel" style="padding:0;overflow:hidden;min-height:420px;display:flex;flex-direction:column">
+      <div style="display:grid;grid-template-columns:minmax(220px,300px) 1fr;min-height:420px;max-height:70vh" id="chatLayout">
+        <div style="border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:#fafbf8">
+          <div style="padding:12px;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center">
+            <input class="field" id="chatSearch" placeholder="Qidiruv..." style="margin:0;flex:1">
+            <button class="primary" type="button" id="chatAddBtn" style="padding:10px 12px;border-radius:10px;white-space:nowrap">+ Add</button>
+          </div>
+          <div id="chatList" style="overflow:auto;flex:1;padding:6px"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;min-height:0;min-width:0">
+          <div id="chatHeader" style="padding:12px 14px;border-bottom:1px solid var(--line);font-weight:850;background:#fff">Chat tanlang</div>
+          <div id="chatThread" style="flex:1;overflow:auto;padding:14px;background:#f3f5f1"></div>
+          <div id="chatComposer" style="display:none;padding:10px;border-top:1px solid var(--line);background:#fff;gap:8px;align-items:center">
+            <input class="field" id="chatInput" placeholder="Xabar yozing..." style="margin:0;flex:1">
+            <button class="primary" type="button" id="chatSendBtn" style="padding:11px 16px">Yuborish</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="chatAddModal" class="modal" style="display:none">
+    <div class="modal-card" style="max-width:420px">
+      <h3 style="margin:0 0 12px">Yangi chat</h3>
+      <p class="muted" style="margin:0 0 10px">Tadbirkorni tanlang va birinchi xabarni yuboring.</p>
+      <select class="field" id="chatAddSelect"><option value="">— Tanlang —</option></select>
+      <textarea class="field" id="chatAddBody" rows="3" placeholder="Salom! ..."></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="primary" type="button" id="chatAddSend">Ochish</button>
+        <button class="secondary" type="button" id="chatAddCancel">Bekor</button>
+      </div>
+      <p class="muted" id="chatAddStatus" style="margin-top:8px"></p>
+    </div>
   </div>
 </section>
-<section class="section" id="settings">
+<section class="section" id="settings"><section class="section" id="settings">
   <div class="panel" style="margin-bottom:15px">
     <h2>Promo-kodlar va chegirmalar</h2>
     <p class="muted">Promo-kod yarating va chegirma foizini belgilang. Masalan: JAMSHID — 10%.</p>
@@ -961,29 +979,31 @@ async function loadAdminNotifications(){
 }
 
 
-async function fillMsgSellerSelect(){
-  const sel=$('msgSellerSelect');
-  if(!sel)return;
-  try{
-    if(!adminSellersList.length){
-      const r=await fetch('/api/admin/sellers',{cache:'no-store'});
-      adminSellersList=r.ok?await r.json():[];
-      if(!Array.isArray(adminSellersList)) adminSellersList=[];
-    }
-    const cur=sel.value;
-    sel.innerHTML='<option value="">— Tanlang —</option>'+adminSellersList.map(s=>{
-      const nick=s.login||(s.telegramUsername||'').replace(/^@/,'')||s.storeName||s.userId;
-      const st=s.status==='frozen'?' (muzlatilgan)':'';
-      return `<option value="${esc(String(s.userId))}">${esc(nick)}${st}</option>`;
-    }).join('');
-    if(cur) sel.value=cur;
-  }catch(e){}
+
+let activeChatUserId = null;
+let adminChatCache = [];
+
+function setXabarTab(which){
+  const n=$('tabNotif'), c=$('tabChats');
+  const np=$('xabarNotifPane'), cp=$('xabarChatPane');
+  if(!n||!c)return;
+  if(which==='chats'){
+    n.className='secondary'; c.className='primary';
+    if(np)np.style.display='none'; if(cp)cp.style.display='block';
+    loadAdminChats();
+  }else{
+    n.className='primary'; c.className='secondary';
+    if(np)np.style.display='block'; if(cp)cp.style.display='none';
+    renderXabarlar();
+  }
 }
+if($('tabNotif'))$('tabNotif').onclick=()=>setXabarTab('notif');
+if($('tabChats'))$('tabChats').onclick=()=>setXabarTab('chats');
+
 async function renderXabarlar(){
   const box=$('xabarlarList');
   if(!box)return;
   box.innerHTML='<p class="muted">Yuklanmoqda...</p>';
-  await fillMsgSellerSelect();
   try{
     const r=await fetch('/api/admin/notifications',{cache:'no-store'});
     const list=r.ok?await r.json():[];
@@ -1004,31 +1024,118 @@ async function renderXabarlar(){
     }).join('');
   }catch(e){box.innerHTML='<p class="muted">Xabarlarni yuklab bo‘lmadi.</p>'}
 }
-if($('refreshXabarlar'))$('refreshXabarlar').onclick=renderXabarlar;
-if($('msgSendBtn'))$('msgSendBtn').onclick=async()=>{
-  const userId=$('msgSellerSelect')?.value;
-  const title=($('msgTitleInput')?.value||'').trim()||'Admin xabari';
-  const body=($('msgBodyInput')?.value||'').trim();
-  const type=$('msgTypeSelect')?.value||'info';
-  const st=$('msgSendStatus');
-  if(!userId){if(st)st.textContent='Tadbirkorni tanlang';return}
-  if(!body){if(st)st.textContent='Xabar matnini yozing';return}
-  const btn=$('msgSendBtn');btn.disabled=true;if(st)st.textContent='Yuborilmoqda...';
+if($('refreshXabarlar'))$('refreshXabarlar').onclick=()=>{ if($('xabarChatPane')&&$('xabarChatPane').style.display!=='none')loadAdminChats(); else renderXabarlar(); };
+if($('markAllNotifRead'))$('markAllNotifRead').onclick=async()=>{
+  try{await fetch('/api/admin/notifications/read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({all:true})});await renderXabarlar()}catch(e){alert('Belgilab bo‘lmadi')}
+};
+
+function renderChatList(filter=''){
+  const box=$('chatList'); if(!box)return;
+  const q=(filter||'').toLowerCase();
+  let list=adminChatCache;
+  if(q)list=list.filter(c=>[c.nick,c.storeName,c.userId,(c.lastMessage&&c.lastMessage.body)||''].join(' ').toLowerCase().includes(q));
+  if(!list.length){box.innerHTML='<p class="muted" style="padding:12px">Chat yo‘q. + Add bosing.</p>';return}
+  box.innerHTML=list.map(c=>{
+    const active=String(c.userId)===String(activeChatUserId);
+    const preview=c.lastMessage?(c.lastMessage.from==='seller'?'← ':'→ ')+(c.lastMessage.body||'').slice(0,48):'—';
+    return `<button type="button" data-open-chat="${esc(String(c.userId))}" style="width:100%;text-align:left;border:0;background:${active?'#eef8d4':'transparent'};padding:10px 12px;border-radius:12px;margin-bottom:4px;cursor:pointer">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
+        <b style="font-size:13px">${esc(c.nick||c.userId)}</b>
+        ${c.unread?`<span style="background:#b4232e;color:#fff;font-size:10px;font-weight:800;padding:2px 6px;border-radius:999px">${c.unread}</span>`:''}
+      </div>
+      <div class="muted" style="font-size:11px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(preview)}</div>
+    </button>`;
+  }).join('');
+  box.querySelectorAll('[data-open-chat]').forEach(b=>b.onclick=()=>openAdminChat(b.dataset.openChat));
+}
+async function loadAdminChats(){
   try{
-    const r=await fetch('/api/admin/sellers/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId,title,body,type})});
+    const r=await fetch('/api/admin/chats',{cache:'no-store'});
+    adminChatCache=r.ok?await r.json():[];
+    if(!Array.isArray(adminChatCache))adminChatCache=[];
+    renderChatList($('chatSearch')?$('chatSearch').value:'');
+    if(activeChatUserId) openAdminChat(activeChatUserId);
+  }catch(e){if($('chatList'))$('chatList').innerHTML='<p class="muted" style="padding:12px">Chatlar yuklanmadi</p>'}
+}
+if($('chatSearch'))$('chatSearch').oninput=()=>renderChatList($('chatSearch').value);
+
+async function openAdminChat(userId){
+  activeChatUserId=userId;
+  renderChatList($('chatSearch')?$('chatSearch').value:'');
+  const head=$('chatHeader'), thread=$('chatThread'), comp=$('chatComposer');
+  if(comp)comp.style.display='flex';
+  if(head)head.textContent='Yuklanmoqda...';
+  if(thread)thread.innerHTML='';
+  try{
+    const r=await fetch('/api/admin/chats/thread?userId='+encodeURIComponent(userId),{cache:'no-store'});
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.error||'Xato');
+    if(head)head.innerHTML=`<span>${esc(d.nick||userId)}</span>${d.storeName?`<span class="muted" style="font-weight:600;font-size:12px;margin-left:8px">${esc(d.storeName)}</span>`:''}`;
+    const msgs=Array.isArray(d.messages)?d.messages:[];
+    if(thread){
+      thread.innerHTML=msgs.length?msgs.map(m=>{
+        const mine=m.from==='admin'||m.from==='system';
+        return `<div style="display:flex;justify-content:${mine?'flex-end':'flex-start'};margin-bottom:8px">
+          <div style="max-width:78%;padding:10px 12px;border-radius:14px;background:${mine?'#d9f28a':'#fff'};border:1px solid ${mine?'#c5e36a':'#e5e9e1'};font-size:13px;line-height:1.45">
+            <div>${esc(m.body||'')}</div>
+            <div class="muted" style="font-size:10px;margin-top:4px">${esc((m.createdAt||'').toString().slice(0,16))} · ${mine?'Siz':'Tadbirkor'}</div>
+          </div>
+        </div>`;
+      }).join(''):'<p class="muted">Hali xabar yo‘q. Yozishni boshlang.</p>';
+      thread.scrollTop=thread.scrollHeight;
+    }
+  }catch(e){if(head)head.textContent=e.message||'Xato'}
+}
+if($('chatSendBtn'))$('chatSendBtn').onclick=async()=>{
+  if(!activeChatUserId)return;
+  const input=$('chatInput');
+  const body=(input.value||'').trim();
+  if(!body)return;
+  const btn=$('chatSendBtn');btn.disabled=true;
+  try{
+    const r=await fetch('/api/admin/sellers/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:activeChatUserId,title:'Admin',body,type:'chat'})});
     const d=await r.json();
     if(!r.ok)throw new Error(d.error||'Yuborilmadi');
-    if(st)st.textContent='Yuborildi ✓';
-    if($('msgBodyInput'))$('msgBodyInput').value='';
-    if($('msgTitleInput'))$('msgTitleInput').value='';
-  }catch(e){if(st)st.textContent=e.message||'Xato'}
+    input.value='';
+    await openAdminChat(activeChatUserId);
+    await loadAdminChats();
+  }catch(e){alert(e.message||'Xato')}
   finally{btn.disabled=false}
 };
-if($('markAllNotifRead'))$('markAllNotifRead').onclick=async()=>{
+
+if($('chatAddBtn'))$('chatAddBtn').onclick=async()=>{
+  const m=$('chatAddModal'); if(!m)return;
+  m.classList.add('show'); m.style.display='flex';
+  const sel=$('chatAddSelect');
   try{
-    await fetch('/api/admin/notifications/read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({all:true})});
-    await renderXabarlar();
-  }catch(e){alert('Belgilab bo‘lmadi')}
+    if(!adminSellersList.length){
+      const r=await fetch('/api/admin/sellers',{cache:'no-store'});
+      adminSellersList=r.ok?await r.json():[];
+    }
+    sel.innerHTML='<option value="">— Tanlang —</option>'+(adminSellersList||[]).map(s=>{
+      const nick=s.login||(s.telegramUsername||'').replace(/^@/,'')||s.storeName||s.userId;
+      return `<option value="${esc(String(s.userId))}">${esc(nick)}</option>`;
+    }).join('');
+  }catch(e){}
+};
+if($('chatAddCancel'))$('chatAddCancel').onclick=()=>{const m=$('chatAddModal');if(m){m.classList.remove('show');m.style.display='none'}};
+if($('chatAddSend'))$('chatAddSend').onclick=async()=>{
+  const userId=$('chatAddSelect')?.value;
+  const body=($('chatAddBody')?.value||'').trim();
+  const st=$('chatAddStatus');
+  if(!userId){if(st)st.textContent='Tadbirkorni tanlang';return}
+  if(!body){if(st)st.textContent='Xabar yozing';return}
+  try{
+    const r=await fetch('/api/admin/sellers/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId,title:'Admin',body,type:'chat'})});
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.error||'Xato');
+    if(st)st.textContent='Ochildi';
+    const m=$('chatAddModal'); if(m){m.classList.remove('show');m.style.display='none'}
+    if($('chatAddBody'))$('chatAddBody').value='';
+    activeChatUserId=userId;
+    await loadAdminChats();
+    await openAdminChat(userId);
+  }catch(e){if(st)st.textContent=e.message||'Xato'}
 };
 
 function showSection(id){
@@ -1304,6 +1411,7 @@ $('refreshCart').onclick=renderCart;
 $('backStore').onclick=()=>location.href='index.html';
 $('logout').onclick=()=>{
  sessionStorage.removeItem('mono_admin_session');
+ sessionStorage.removeItem('shoply_admin_session');
  location.replace('index.html');
 };
 document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{
@@ -1352,38 +1460,14 @@ function wireHomeLayout(){const box=$('homeLayoutEditor');if(!box)return;fetch('
 wireHomeLayout();
 // Offline admin login: yangi standart kirish shoply / 24001214.
 (function adminGate(){
-  try{const cfg=JSON.parse(localStorage.getItem('shoply_site_builder_v1')||'{}')||{};if(!cfg.adminPassword||cfg.adminPassword==='2400'){cfg.adminLogin=cfg.adminLogin||'shoply';cfg.adminPassword='24001214';localStorage.setItem('shoply_site_builder_v1',JSON.stringify(cfg));}}catch{}
-  const gate=$('adminGate'), login=$('gateLogin'), password=$('gatePassword'), error=$('gateError'), button=$('gateSubmit');
-  if(!gate||!login||!password||!button)return;
-  // Browser autofillni oldini olish: maydonlar bo‘sh bo‘lishi shart.
-  login.value=''; password.value=''; login.setAttribute('autocomplete','off'); login.setAttribute('name','shoply_user_field_20261031'); password.setAttribute('autocomplete','new-password');
-  const clearAutofill=()=>{if(!login.dataset.userStarted)login.value='';if(!password.dataset.userStarted)password.value='';};
-  login.addEventListener('input',()=>login.dataset.userStarted='1');password.addEventListener('input',()=>password.dataset.userStarted='1');
-  window.addEventListener('pageshow',clearAutofill);setTimeout(clearAutofill,80);setTimeout(clearAutofill,450);
-  if(sessionStorage.getItem('shoply_admin_session')==='1'){gate.remove();return;}
-  function enter(){
-    const enteredLogin=login.value.trim();
-    const enteredPassword=password.value;
-    let cfg={};
-    try{cfg=JSON.parse(localStorage.getItem('shoply_site_builder_v1')||'{}')||{};}catch{}
-    // Yagona SHOPLY admin login. Eski 2400 paroli migratsiya uchun vaqtincha qabul qilinadi.
-    // Muvaffaqiyatli kirgandan so'ng parol 24001214 ga normallashtiriladi.
-    const accepted=(enteredLogin==='shoply' && (enteredPassword==='24001214' || enteredPassword==='2400'));
-    if(accepted){
-      cfg.adminLogin='shoply';
-      cfg.adminPassword='24001214';
-      try{localStorage.setItem('shoply_site_builder_v1',JSON.stringify(cfg));}catch(e){}
-      try{if(window.shoplyPush)void window.shoplyPush('shoply_site_builder_v1',cfg);}catch(e){}
-      sessionStorage.setItem('shoply_admin_session','1');
-      gate.remove();
-      return;
-    }
-    error.textContent='Login yoki parol noto‘g‘ri. Qayta tekshirib kiriting.';
-    password.value=''; password.focus();
+  // Login faqat index.html orqali. Admin panel o‘z loginini o‘chirdi.
+  const ok = sessionStorage.getItem('shoply_admin_session')==='1' || sessionStorage.getItem('mono_admin_session')==='1';
+  if(!ok){
+    location.replace('index.html');
+    return;
   }
-  button.addEventListener('click',enter);
-  password.addEventListener('keydown',e=>{if(e.key==='Enter')enter();});
-  login.addEventListener('keydown',e=>{if(e.key==='Enter')password.focus();});
+  // legacy key sync
+  sessionStorage.setItem('shoply_admin_session','1');
 })();
 function applyNavOrder(order){const side=document.getElementById('adminSidebar');if(!side)return;const navs=[...side.querySelectorAll('[data-section]')];if(!Array.isArray(order)||!order.length)return;order.forEach(id=>{const b=navs.find(x=>x.dataset.section===id);if(b)side.insertBefore(b,side.querySelector('.bottom'))})}
 (async function loadBuilderSettings(){try{const cfg=readObject('shoply_site_builder_v1',{});document.body.dataset.adminTheme=cfg.theme||'current';if($('siteTheme'))$('siteTheme').value=cfg.theme||'current';document.querySelectorAll('[data-theme-pick]').forEach(b=>b.classList.toggle('active',b.dataset.themePick===(cfg.theme||'current')));$('currentDesign')?.classList.toggle('active',!['glass','soft','night'].includes(cfg.theme));if($('accentColor'))$('accentColor').value=cfg.accent||'#b7f34a';if(cfg.accent)applyAccent(cfg.accent);applyNavOrder(cfg.navOrder||[]);const navs=[...document.querySelectorAll('#adminSidebar [data-section]')];navs.forEach(b=>{b.draggable=true;b.addEventListener('dragstart',e=>e.dataTransfer.setData('text/plain',b.dataset.section));b.addEventListener('dragover',e=>e.preventDefault());b.addEventListener('drop',e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain'),from=navs.find(x=>x.dataset.section===id);if(from&&from!==b){b.parentNode.insertBefore(from,b);const cfg2={...cfg,navOrder:[...document.querySelectorAll('#adminSidebar [data-section]')].map(x=>x.dataset.section)};save('shoply_site_builder_v1',cfg2)}})})}catch(e){console.warn('Builder sozlamalari yuklanmadi',e)}})();
