@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f5f6f2">
+<title>SHOPLY — Tadbirkor paneli</title>
+<style>
+:root{--accent:#b7f34a;--bg:#f5f6f2;--card:#fff;--ink:#191b16;--muted:#85877f;--line:#e5e6df;--shadow:0 12px 35px rgba(25,27,22,.07)}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,Arial,sans-serif}
+button,input,select,textarea{font:inherit}button{cursor:pointer;transition:.2s}button:hover{filter:brightness(.96)}img{display:block;max-width:100%}
+.layout{display:flex;min-height:100vh}
+.sidebar{width:250px;flex-shrink:0;background:var(--card);border-right:1px solid var(--line);padding:22px 14px;display:flex;flex-direction:column;min-height:100vh;position:sticky;top:0;height:100vh}
+.logo{font-size:26px;font-weight:950;padding:0 10px;letter-spacing:-.5px}.logo span{color:#5a8a12}
+.subtitle{padding:6px 10px 20px;font-size:12px;color:var(--muted)}
+.nav{display:block;width:100%;border:0;background:transparent;padding:13px 12px;border-radius:10px;text-align:left;margin:3px 0;color:var(--ink);font-weight:650}
+.nav:hover,.nav.active{background:var(--accent);font-weight:850}
+.bottom{margin-top:auto;border-top:1px solid var(--line);padding-top:13px}
+.main{flex:1;padding:22px 28px 50px;max-width:1200px}
+.topbar{display:flex;align-items:center;gap:12px;margin-bottom:22px;flex-wrap:wrap}
+.menu-toggle{display:none;width:42px;height:42px;border:1px solid var(--line);border-radius:12px;background:var(--card);font-size:20px}
+h1{font-size:24px;margin:0;font-weight:900}
+.muted{color:var(--muted);font-size:13px}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:22px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow)}
+.stat-label{font-size:12px;color:var(--muted);font-weight:700}.stat-value{font-size:22px;font-weight:950;margin-top:6px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow);margin-bottom:18px}
+.panel h2{margin:0 0 14px;font-size:18px}
+button.primary{border:0;background:var(--accent);color:#171914;border-radius:9px;padding:11px 14px;font-weight:800}
+button.secondary{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:9px;padding:10px 12px;font-weight:700}
+button.danger{border:0;background:#ffeded;color:#b4232e;border-radius:8px;padding:9px 11px;font-weight:700}
+.field{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink);margin:6px 0 12px;outline:none}
+.label{font-size:13px;font-weight:700}
+.product-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.product-card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.product-card img{width:100%;height:160px;object-fit:cover;background:#eee}
+.product-card .body{padding:12px;flex:1;display:flex;flex-direction:column}
+.product-card h3{margin:0 0 6px;font-size:14px;line-height:1.35}
+.actions{display:flex;gap:8px;margin-top:auto;padding-top:10px}
+.actions button{flex:1;font-size:12px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.badge{display:inline-block;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:800;background:#eef8d8}
+.badge.frozen{background:#ffe8e8;color:#b4232e}.badge.pending{background:#fff4d6}
+.section{display:none}.section.active{display:block}
+.freeze-banner{background:#fff4d6;border:1px solid #f0d78c;border-radius:12px;padding:14px;margin-bottom:16px;font-size:14px}
+.scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:900}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1100;align-items:center;justify-content:center;padding:14px}
+.modal-bg.open{display:flex}.modal{width:min(520px,100%);max-height:90vh;overflow:auto;background:var(--card);border-radius:16px;padding:20px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:900px){
+  .sidebar{position:fixed;z-index:1000;transform:translateX(-105%);transition:transform .25s;width:min(280px,86vw)}
+  body.drawer-open .sidebar{transform:translateX(0)}
+  body.drawer-open .scrim{display:block}
+  .main{padding:14px 14px 40px}
+  .menu-toggle{display:grid;place-items:center}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .product-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .form-row{grid-template-columns:1fr}
+  table{font-size:12px}th,td{padding:8px 6px}
+}
+@media(max-width:500px){.stats{grid-template-columns:1fr}.product-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="scrim" id="scrim"></div>
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="logo">SHOP<span>LY</span></div>
+    <div class="subtitle" id="storeLabel">Tadbirkor paneli</div>
+    <button class="nav active" data-section="home">▦ Bosh sahifa</button>
+    <button class="nav" data-section="products">▣ Mahsulotlarim</button>
+    <button class="nav" data-section="orders">☰ Buyurtmalar</button>
+    <button class="nav" data-section="debt">₽ Qarzdorlik</button>
+    <button class="nav" data-section="stats">▤ Statistika</button>
+    <button class="nav" data-section="profile">♙ Profil</button>
+    <div class="bottom">
+      <button class="nav" id="btnLogout" style="color:#b4232e">← Do‘konga qaytish</button>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="topbar">
+      <button class="menu-toggle" id="menuToggle" type="button">☰</button>
+      <h1 id="pageTitle">Bosh sahifa</h1>
+    </div>
+    <div id="freezeBanner" class="freeze-banner" style="display:none"></div>
+    <div id="gate" class="panel" style="display:none"><p>Tadbirkor paneliga kirish uchun Telegram Mini App orqali kiring va profilingiz tasdiqlangan bo‘lishi kerak.</p><a href="index.html" class="primary" style="display:inline-block;text-decoration:none;padding:11px 16px;border-radius:9px">Bosh sahifaga</a></div>
+
+    <section class="section active" id="sec-home">
+      <div class="stats">
+        <div class="stat"><div class="stat-label">Mahsulotlar</div><div class="stat-value" id="stProducts">0</div></div>
+        <div class="stat"><div class="stat-label">Yangi buyurtmalar</div><div class="stat-value" id="stNew">0</div></div>
+        <div class="stat"><div class="stat-label">Jarayonda</div><div class="stat-value" id="stProcess">0</div></div>
+        <div class="stat"><div class="stat-label">Yetkazilgan</div><div class="stat-value" id="stDone">0</div></div>
+        <div class="stat"><div class="stat-label">Jami savdo</div><div class="stat-value" id="stSales">0</div></div>
+        <div class="stat"><div class="stat-label">3% komissiya qarzi</div><div class="stat-value" id="stDebt">0</div></div>
+      </div>
+      <div class="panel"><h2>Oxirgi buyurtmalar</h2><div class="table-wrap"><table><thead><tr><th>ID</th><th>Xaridor</th><th>Summa</th><th>Holat</th><th>Sana</th></tr></thead><tbody id="homeOrders"></tbody></table></div></div>
+    </section>
+
+    <section class="section" id="sec-products">
+      <div class="panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+          <h2 style="margin:0">Mahsulotlarim</h2>
+          <button class="primary" id="btnAddProduct">＋ Yangi mahsulot</button>
+        </div>
+        <div class="product-grid" id="myProducts"></div>
+      </div>
+    </section>
+
+    <section class="section" id="sec-orders">
+      <div class="panel">
+        <h2>Buyurtmalar</h2>
+        <div class="table-wrap"><table><thead><tr><th>Buyurtma</th><th>Xaridor</th><th>Mahsulotlar</th><th>Holat</th><th>Amal</th></tr></thead><tbody id="ordersRows"></tbody></table></div>
+      </div>
+    </section>
+
+    <section class="section" id="sec-debt">
+      <div class="stats">
+        <div class="stat"><div class="stat-label">Jami savdo</div><div class="stat-value" id="debtSales">0</div></div>
+        <div class="stat"><div class="stat-label">Jami komissiya</div><div class="stat-value" id="debtTotal">0</div></div>
+        <div class="stat"><div class="stat-label">Hozirgi qarz</div><div class="stat-value" id="debtNow">0</div></div>
+      </div>
+      <div class="panel"><h2>Komissiya tarixi</h2><div class="table-wrap"><table><thead><tr><th>Sana</th><th>Buyurtma</th><th>Mahsulot</th><th>Savdo</th><th>Komissiya</th></tr></thead><tbody id="commissionRows"></tbody></table></div></div>
+    </section>
+
+    <section class="section" id="sec-stats">
+      <div class="panel"><h2>Statistika</h2><p class="muted">Ma’lumotlar real Supabase yozuvlaridan olinadi.</p>
+        <div class="stats">
+          <div class="stat"><div class="stat-label">Mahsulotlar soni</div><div class="stat-value" id="statP">0</div></div>
+          <div class="stat"><div class="stat-label">Jami savdo</div><div class="stat-value" id="statS">0</div></div>
+          <div class="stat"><div class="stat-label">Komissiya qarzi</div><div class="stat-value" id="statD">0</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="sec-profile">
+      <div class="panel" id="profileCard">
+        <h2>Profil</h2>
+        <p class="muted">Yuklanmoqda...</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="modal-bg" id="productModal">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h2 style="margin:0" id="pmTitle">Yangi mahsulot</h2><button class="secondary" type="button" id="pmClose">✕</button></div>
+    <input type="hidden" id="pmId">
+    <label class="label">Mahsulot nomi *</label><input class="field" id="pmName" maxlength="150">
+    <label class="label">Kategoriya</label><input class="field" id="pmCategory" maxlength="80" placeholder="Masalan: Kiyim">
+    <div class="form-row">
+      <div><label class="label">Narxi *</label><input class="field" id="pmPrice" type="number" min="0" step="1000"></div>
+      <div><label class="label">Eski narx</label><input class="field" id="pmOldPrice" type="number" min="0" step="1000"></div>
+    </div>
+    <label class="label">Asosiy rasm (URL yoki fayl)</label><input class="field" id="pmImage" placeholder="https://...">
+    <input class="field" id="pmImageFile" type="file" accept="image/jpeg,image/png,image/webp">
+    <label class="label">Qo‘shimcha rasmlar (URL, vergul bilan)</label><textarea class="field" id="pmImages" rows="2"></textarea>
+    <label class="label">Tavsif</label><textarea class="field" id="pmDesc" rows="3" maxlength="2000"></textarea>
+    <div class="form-row">
+      <div><label class="label">Ranglar (vergul)</label><input class="field" id="pmColors" placeholder="Qora, Oq"></div>
+      <div><label class="label">O‘lchamlar (vergul)</label><input class="field" id="pmSizes" placeholder="S, M, L"></div>
+    </div>
+    <label class="label">Miqdor (ixtiyoriy)</label><input class="field" id="pmStock" type="number" min="0">
+    <button class="primary" id="pmSave" style="width:100%">Saqlash</button>
+    <p class="muted" id="pmStatus" style="margin-top:10px"></p>
+  </div>
+</div>
+
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+'use strict';
+const tgUserId=(()=>{try{return window.Telegram?.WebApp?.initDataUnsafe?.user?.id?String(window.Telegram.WebApp.initDataUnsafe.user.id):'guest'}catch{return 'guest'}})();
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=v=>Number(v||0).toLocaleString('uz-UZ')+' so‘m';
+let seller=null, myProducts=[], myOrders=[], commissions=[];
+
+try{window.Telegram?.WebApp?.ready?.();window.Telegram?.WebApp?.expand?.()}catch(e){}
+
+const menuToggle=$('menuToggle'),scrim=$('scrim'),sidebar=$('sidebar');
+function setDrawer(open){document.body.classList.toggle('drawer-open',open)}
+menuToggle.onclick=()=>setDrawer(!document.body.classList.contains('drawer-open'));
+scrim.onclick=()=>setDrawer(false);
+$('btnLogout').onclick=()=>location.href='index.html';
+
+document.querySelectorAll('.nav[data-section]').forEach(btn=>{
+  btn.onclick=()=>{
+    document.querySelectorAll('.nav[data-section]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+    const id='sec-'+btn.dataset.section;
+    $(id)?.classList.add('active');
+    const titles={home:'Bosh sahifa',products:'Mahsulotlarim',orders:'Buyurtmalar',debt:'Qarzdorlik',stats:'Statistika',profile:'Profil'};
+    $('pageTitle').textContent=titles[btn.dataset.section]||'';
+    setDrawer(false);
+  };
+});
+
+function showFreeze(){
+  const el=$('freezeBanner');
+  if(seller&&seller.status==='frozen'){
+    el.style.display='block';
+    el.innerHTML=`<strong>Hisob muzlatilgan.</strong> Komissiya qarzi: ${money(seller.debt)}. Yangi mahsulot qo‘shish va tahrirlash cheklangan. Admin hisobni qayta faollashtirishi mumkin. ${seller.freezeReason?('Sabab: '+esc(seller.freezeReason)):''}`;
+  }else el.style.display='none';
+}
+
+async function loadSeller(){
+  if(tgUserId==='guest'){
+    $('gate').style.display='block';
+    document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+    return false;
+  }
+  try{
+    const r=await fetch('/api/seller/me?userId='+encodeURIComponent(tgUserId),{cache:'no-store'});
+    if(!r.ok){ $('gate').style.display='block'; document.querySelectorAll('.section').forEach(s=>s.classList.remove('active')); return false; }
+    seller=await r.json();
+    $('storeLabel').textContent=seller.storeName||'Tadbirkor paneli';
+    $('gate').style.display='none';
+    showFreeze();
+    return true;
+  }catch(e){
+    $('gate').style.display='block';
+    return false;
+  }
+}
+
+async function loadProducts(){
+  const r=await fetch('/api/seller/products?userId='+encodeURIComponent(tgUserId),{cache:'no-store'});
+  myProducts=r.ok?await r.json():[];
+  renderProducts();
+}
+async function loadOrders(){
+  const r=await fetch('/api/seller/orders?userId='+encodeURIComponent(tgUserId),{cache:'no-store'});
+  myOrders=r.ok?await r.json():[];
+  renderOrders();
+  renderHome();
+}
+async function loadCommissions(){
+  const r=await fetch('/api/seller/commissions?userId='+encodeURIComponent(tgUserId),{cache:'no-store'});
+  commissions=r.ok?await r.json():[];
+  renderDebt();
+}
+
+function renderHome(){
+  if(!seller)return;
+  $('stProducts').textContent=myProducts.length;
+  const st=s=>(myOrders.filter(o=>(o.status||'')===s).length);
+  $('stNew').textContent=st('Yangi');
+  $('stProcess').textContent=st('Jarayonda')+st('Yetkazilmoqda');
+  $('stDone').textContent=st('Yetkazildi');
+  $('stSales').textContent=money(seller.totalSales);
+  $('stDebt').textContent=money(seller.debt);
+  $('homeOrders').innerHTML=myOrders.slice(0,8).map(o=>{
+    const sum=(o.items||[]).reduce((a,i)=>a+(Number(i.price)||0)*(Number(i.quantity)||1),0);
+    return `<tr><td>${esc(o.id)}</td><td>${esc(o.name)}<br><span class="muted">${esc(o.phone||'')}</span></td><td>${money(sum)}</td><td><span class="badge">${esc(o.status||'')}</span></td><td>${esc((o.createdAt||'').slice(0,10))}</td></tr>`;
+  }).join('')||'<tr><td colspan="5">Buyurtmalar yo‘q</td></tr>';
+  $('statP').textContent=myProducts.length;
+  $('statS').textContent=money(seller.totalSales);
+  $('statD').textContent=money(seller.debt);
+}
+
+function renderProducts(){
+  const grid=$('myProducts');
+  if(!myProducts.length){grid.innerHTML='<p class="muted">Hali mahsulot yo‘q. «Yangi mahsulot» tugmasini bosing.</p>';return}
+  grid.innerHTML=myProducts.map(p=>`
+    <div class="product-card">
+      <img src="${esc(p.image||'')}" alt="" onerror="this.src='https://placehold.co/400x400/f0f1eb/777?text=SHOPLY'">
+      <div class="body">
+        <h3>${esc(p.name)}</h3>
+        <div style="font-weight:900;margin-bottom:4px">${money(p.price)}</div>
+        <div class="muted">${esc(p.category||p.cat||'')}</div>
+        <div class="actions">
+          <button class="secondary" data-edit="${esc(p.id)}">Tahrirlash</button>
+          <button class="danger" data-del="${esc(p.id)}">O‘chirish</button>
+        </div>
+      </div>
+    </div>`).join('');
+  grid.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openProductForm(myProducts.find(x=>String(x.id)===b.dataset.edit)));
+  grid.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>deleteProduct(b.dataset.del));
+}
+
+function renderOrders(){
+  $('ordersRows').innerHTML=myOrders.map(o=>{
+    const items=(o.items||[]).map(i=>`${esc(i.name)} × ${i.quantity}`).join('<br>');
+    const opts=['Yangi','Jarayonda','Yetkazilmoqda','Yetkazildi','Bekor qilindi'];
+    const sel=opts.map(s=>`<option value="${s}" ${o.status===s?'selected':''}>${s}</option>`).join('');
+    return `<tr>
+      <td>${esc(o.id)}<br><span class="muted">${esc((o.createdAt||'').slice(0,16))}</span></td>
+      <td>${esc(o.name)}<br>${esc(o.phone||'')}<br><span class="muted">${esc(o.address||'')}</span></td>
+      <td>${items}</td>
+      <td><span class="badge">${esc(o.status||'')}</span></td>
+      <td><select data-oid="${esc(o.id)}" class="field" style="margin:0;padding:6px;min-width:120px">${sel}</select></td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="5">Buyurtmalar yo‘q</td></tr>';
+  $('ordersRows').querySelectorAll('select[data-oid]').forEach(sel=>{
+    sel.onchange=async()=>{
+      sel.disabled=true;
+      try{
+        const r=await fetch('/api/seller/orders/status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:tgUserId,orderId:sel.dataset.oid,status:sel.value})});
+        const d=await r.json();
+        if(!r.ok)throw new Error(d.error||'Xato');
+        await loadOrders();await loadSeller();await loadCommissions();
+      }catch(e){alert(e.message||'Xatolik')}
+      finally{sel.disabled=false}
+    };
+  });
+}
+
+function renderDebt(){
+  if(!seller)return;
+  $('debtSales').textContent=money(seller.totalSales);
+  $('debtTotal').textContent=money(seller.totalCommission);
+  $('debtNow').textContent=money(seller.debt);
+  $('commissionRows').innerHTML=commissions.map(c=>`
+    <tr><td>${esc((c.createdAt||'').slice(0,16))}</td><td>${esc(c.orderId)}</td><td>${esc(c.productName)}</td><td>${money(c.saleAmount)}</td><td>${money(c.amount)}</td></tr>
+  `).join('')||'<tr><td colspan="5">Hali komissiya yozuvlari yo‘q</td></tr>';
+}
+
+function renderProfile(){
+  if(!seller)return;
+  $('profileCard').innerHTML=`
+    <h2>Profil</h2>
+    ${seller.photo?`<img src="${esc(seller.photo)}" alt="" style="width:72px;height:72px;border-radius:50%;object-fit:cover;margin-bottom:12px">`:''}
+    <p><strong>Do‘kon:</strong> ${esc(seller.storeName)}</p>
+    <p><strong>Ism:</strong> ${esc(seller.fullName)}</p>
+    <p><strong>Telefon:</strong> ${esc(seller.phone)}</p>
+    <p><strong>Email:</strong> ${esc(seller.email||'—')}</p>
+    <p><strong>Telegram:</strong> ${esc(seller.telegramUsername||'—')}</p>
+    <p><strong>Holat:</strong> <span class="badge ${seller.status==='frozen'?'frozen':''}">${esc(seller.status)}</span></p>
+    <p><strong>Tasdiqlangan:</strong> ${esc((seller.approvedAt||'').slice(0,10))}</p>
+    <p><strong>Qarz:</strong> ${money(seller.debt)}</p>
+  `;
+}
+
+function openProductForm(p){
+  if(seller&&seller.status==='frozen'&&!p){alert('Hisob muzlatilgan — yangi mahsulot qo‘shib bo‘lmaydi');return}
+  $('pmTitle').textContent=p?'Mahsulotni tahrirlash':'Yangi mahsulot';
+  $('pmId').value=p?.id||'';
+  $('pmName').value=p?.name||'';
+  $('pmCategory').value=p?.category||p?.cat||'';
+  $('pmPrice').value=p?.price??'';
+  $('pmOldPrice').value=p?.oldPrice??'';
+  $('pmImage').value=p?.image||'';
+  $('pmImages').value=Array.isArray(p?.images)?p.images.join(', '):'';
+  $('pmDesc').value=p?.description||'';
+  $('pmColors').value=Array.isArray(p?.colors)?p.colors.join(', '):'';
+  $('pmSizes').value=Array.isArray(p?.sizes)?p.sizes.join(', '):'';
+  $('pmStock').value=p?.stock??'';
+  $('pmStatus').textContent='';
+  $('pmImageFile').value='';
+  $('productModal').classList.add('open');
+}
+$('pmClose').onclick=()=>$('productModal').classList.remove('open');
+$('btnAddProduct').onclick=()=>openProductForm(null);
+
+function fileToDataUrl(file){
+  return new Promise((resolve,reject)=>{
+    if(!file)return resolve('');
+    if(file.size>1.8*1024*1024)return reject(new Error('Rasm 1.8 MB dan kichik bo‘lsin'));
+    const r=new FileReader();
+    r.onload=()=>resolve(r.result);
+    r.onerror=()=>reject(new Error('Rasm o‘qilmadi'));
+    r.readAsDataURL(file);
+  });
+}
+
+$('pmSave').onclick=async()=>{
+  const btn=$('pmSave');btn.disabled=true;$('pmStatus').textContent='Saqlanmoqda...';
+  try{
+    let image=$('pmImage').value.trim();
+    const file=$('pmImageFile').files?.[0];
+    if(file) image=await fileToDataUrl(file);
+    const body={
+      userId:tgUserId,
+      id:$('pmId').value||undefined,
+      name:$('pmName').value.trim(),
+      category:$('pmCategory').value.trim()||'Boshqa',
+      price:Number($('pmPrice').value),
+      oldPrice:$('pmOldPrice').value!==''?Number($('pmOldPrice').value):null,
+      image,
+      images:$('pmImages').value.split(',').map(x=>x.trim()).filter(Boolean),
+      description:$('pmDesc').value.trim(),
+      colors:$('pmColors').value.split(',').map(x=>x.trim()).filter(Boolean),
+      sizes:$('pmSizes').value.split(',').map(x=>x.trim()).filter(Boolean),
+      stock:$('pmStock').value!==''?Number($('pmStock').value):null
+    };
+    const r=await fetch('/api/seller/products',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.error||'Xatolik');
+    $('pmStatus').textContent='Saqlandi';
+    $('productModal').classList.remove('open');
+    await loadProducts();await loadSeller();
+  }catch(e){$('pmStatus').textContent=e.message||'Xatolik';$('pmStatus').style.color='#c33'}
+  finally{btn.disabled=false}
+};
+
+async function deleteProduct(id){
+  if(!confirm('Mahsulotni o‘chirishni tasdiqlaysizmi?'))return;
+  try{
+    const r=await fetch('/api/seller/products/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:tgUserId,productId:id})});
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.error||'Xato');
+    await loadProducts();await loadSeller();
+  }catch(e){alert(e.message||'Xatolik')}
+}
+
+(async function init(){
+  const ok=await loadSeller();
+  if(!ok)return;
+  await Promise.all([loadProducts(),loadOrders(),loadCommissions()]);
+  renderProfile();
+  renderHome();
+})();
+</script>
+</body>
+</html>

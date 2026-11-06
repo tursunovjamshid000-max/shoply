@@ -264,7 +264,9 @@ html,body{width:100%;max-width:100%;overflow-x:hidden!important;margin:0}
 <div class="modal-bg" id="checkoutModal"><div class="modal"><div class="modal-head"><h2>Buyurtma berish</h2><button class="close" data-close="checkoutModal">✕</button></div><p class="muted">Ma’lumotlaringizni kiriting. Buyurtma Telegram orqali @B_k_i_n ga yuborish uchun tayyorlanadi.</p><label>Ismingiz</label><input class="field" id="orderName" maxlength="100" placeholder="Ism familiya" required><label>Telefon raqamingiz</label><input class="field" id="orderPhone" maxlength="30" placeholder="+998 90 123 45 67" required><label>Manzil (ixtiyoriy)</label><textarea class="field" id="orderAddress" rows="2" maxlength="300" placeholder="Yetkazib berish manzili"></textarea><button class="primary" id="confirmOrder" style="width:100%">Buyurtmani tasdiqlash</button><p id="orderStatus" class="muted" role="status"></p></div></div>
 <div class="modal-bg" id="productModal"><div class="modal product-detail-modal"><div class="modal-head"><h2 id="detailTitle">Mahsulot</h2><button class="close" data-close="productModal">✕</button></div><div id="detailBody"></div></div></div>
 <div class="modal-bg" id="reviewModal"><div class="modal"><div class="modal-head"><h2 id="reviewTitle">Mahsulot sharhlari</h2><button class="close" data-close="reviewModal">✕</button></div><div id="reviewList"></div><hr style="border:0;border-top:1px solid var(--line);margin:16px 0"><h3>Sharh qoldirish</h3><input class="field" id="reviewName" maxlength="60" placeholder="Ismingiz"><select class="field" id="reviewRating"><option value="5">★★★★★ — 5</option><option value="4">★★★★☆ — 4</option><option value="3">★★★☆☆ — 3</option><option value="2">★★☆☆☆ — 2</option><option value="1">★☆☆☆☆ — 1</option></select><textarea class="field" id="reviewText" rows="3" maxlength="700" placeholder="Mahsulot haqida fikringiz..."></textarea><button class="primary" id="sendReview" style="width:100%">Sharhni yuborish</button><p class="muted" id="reviewStatus"></p></div></div>
-<div class="modal-bg" id="profileModal"><div class="modal"><div class="modal-head"><h2>Profilim</h2><button class="close" data-close="profileModal">✕</button></div><label>Ismingiz</label><input class="field" id="profileName" placeholder="Ismingiz"><label>Telefon raqamingiz</label><input class="field" id="profilePhone" placeholder="+998..."><button class="primary" id="saveProfile" style="width:100%">Saqlash</button></div></div>
+<div class="modal-bg" id="profileModal"><div class="modal"><div class="modal-head"><h2>Profilim</h2><button class="close" data-close="profileModal">✕</button></div><label>Ismingiz</label><input class="field" id="profileName" placeholder="Ismingiz"><label>Telefon raqamingiz</label><input class="field" id="profilePhone" placeholder="+998..."><button class="primary" id="saveProfile" style="width:100%;margin-bottom:14px">Saqlash</button><div id="sellerProfileBlock" style="border-top:1px solid var(--line);padding-top:14px"><h3 style="margin:0 0 10px;font-size:16px">Tadbirkorlik</h3><p class="muted" id="sellerStatusText" style="font-size:13px;margin:0 0 10px">Yuklanmoqda...</p><button class="primary" id="sellerApplyBtn" style="width:100%;display:none">Savdo qilish uchun ariza</button><a id="sellerPanelLink" href="seller.html" class="primary" style="display:none;width:100%;text-align:center;text-decoration:none;padding:12px;border-radius:9px;font-weight:800;box-sizing:border-box">Tadbirkor paneli</a></div></div></div>
+<div class="modal-bg" id="sellerApplyModal"><div class="modal" style="max-width:520px"><div class="modal-head"><h2>Tadbirkorlik arizasi</h2><button class="close" data-close="sellerApplyModal">✕</button></div><p class="muted" style="font-size:13px;margin:0 0 12px">SHOPLY platformasida o‘z mahsulotlaringizni soting. Ariza 24 soat ichida ko‘rib chiqiladi.</p><label>Ism va familiya *</label><input class="field" id="saFullName" maxlength="120" placeholder="To‘liq ismingiz"><label>Do‘kon nomi *</label><input class="field" id="saStoreName" maxlength="100" placeholder="Masalan: Aziz Style"><label>Telefon raqami *</label><input class="field" id="saPhone" maxlength="40" placeholder="+998 90 123 45 67"><label>Email</label><input class="field" id="saEmail" maxlength="120" placeholder="email@example.com"><label>Telegram username</label><input class="field" id="saTelegram" maxlength="80" placeholder="@username"><label>Profil rasmi (URL yoki bo‘sh qoldiring)</label><input class="field" id="saPhoto" maxlength="500" placeholder="https://..."><label>Qo‘shimcha ma’lumot</label><textarea class="field" id="saExtra" rows="2" maxlength="1000" placeholder="Qisqa ma’lumot..."></textarea><label style="display:flex;gap:10px;align-items:flex-start;margin:8px 0 14px;font-size:13px;cursor:pointer"><input type="checkbox" id="saAgree" style="margin-top:3px;width:18px;height:18px;flex-shrink:0"><span>SHOPLY platformasida amalga oshirilgan tasdiqlangan savdolar uchun <strong>3% komissiya</strong> to‘lashga roziman.</span></label><button class="primary" id="saSubmit" style="width:100%">Arizani yuborish</button><p id="saStatus" class="muted" style="margin-top:10px;font-size:13px"></p></div></div>
+<div class="modal-bg" id="sellerCongratsModal"><div class="modal"><div class="modal-head"><h2>Tabriklaymiz!</h2><button class="close" data-close="sellerCongratsModal">✕</button></div><p style="line-height:1.55">Profilingiz tasdiqlandi. Endi SHOPLY platformasida tadbirkorlik faoliyatini boshlashingiz mumkin.</p><a href="seller.html" class="primary" style="display:block;text-align:center;text-decoration:none;padding:12px;border-radius:9px;font-weight:800;margin-top:12px">Tadbirkor paneliga o‘tish</a></div></div>
 <div class="modal-bg" id="settingsModal"><div class="modal"><div class="modal-head"><h2>Sozlamalar</h2><button class="close" data-close="settingsModal">✕</button></div><label>Ko‘rinish</label><select class="field" id="themeSelect"><option value="light">Yorug‘ rejim</option><option value="dark">Qorong‘i rejim</option></select><p class="muted" style="font-size:12px">Tanlangan ko‘rinish ushbu qurilmada saqlanadi.</p><button class="primary" id="saveSettings" style="width:100%">Saqlash</button></div></div>
 
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -306,7 +308,7 @@ function renderProducts(){
  let list=orderedProducts().filter(p=>(activeCategory==='all'||p.cat===activeCategory)&&String(p.name||'').toLocaleLowerCase('uz').includes(q));
  if(showFavorites)list=list.filter(p=>favorites.includes(String(p.id))||favorites.includes(p.id));
  $('productCount').textContent=list.length+' ta';
- $('products').innerHTML=list.map(p=>{const imgs=productImages(p);const main=imgs[0]||'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=700&q=80';const rev=reviewCache[String(p.id)]||[];const avg=rev.length?(rev.reduce((a,x)=>a+(Number(x.rating)||5),0)/rev.length).toFixed(1):(p.rating||'0');return `<article class="product"><div class="product-image" data-open="${esc(p.id)}"><img loading="lazy" src="${esc(main)}" alt="${esc(p.name)}" onerror="this.src='https://placehold.co/600x600/f0f1eb/777?text=SHOPLY'"><button class="fav ${favorites.some(x=>String(x)===String(p.id))?'saved':''}" data-fav="${esc(p.id)}" aria-label="Sevimlilarga qo‘shish">${favorites.some(x=>String(x)===String(p.id))?'♥':'♡'}</button></div><div class="product-info" data-open="${esc(p.id)}"><span class="category-tag">${esc(p.cat)}</span><h3>${esc(p.name)}</h3><div class="price">${money(p.price)}</div></div><div style="padding:0 10px 11px"><button class="add" data-add="${esc(p.id)}">＋ Savatga qo‘shish</button></div></article>`}).join('')||'<div class="empty">Bu bo‘limda mahsulot topilmadi.</div>';
+ $('products').innerHTML=list.map(p=>{const imgs=productImages(p);const main=imgs[0]||'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=700&q=80';const rev=reviewCache[String(p.id)]||[];const avg=rev.length?(rev.reduce((a,x)=>a+(Number(x.rating)||5),0)/rev.length).toFixed(1):(p.rating||'0');return `<article class="product"><div class="product-image" data-open="${esc(p.id)}"><img loading="lazy" src="${esc(main)}" alt="${esc(p.name)}" onerror="this.src='https://placehold.co/600x600/f0f1eb/777?text=SHOPLY'"><button class="fav ${favorites.some(x=>String(x)===String(p.id))?'saved':''}" data-fav="${esc(p.id)}" aria-label="Sevimlilarga qo‘shish">${favorites.some(x=>String(x)===String(p.id))?'♥':'♡'}</button></div><div class="product-info" data-open="${esc(p.id)}"><span class="category-tag">${esc(p.cat||p.category||"")}</span>${p.storeName?`<span class="category-tag" style="display:inline-block;margin-left:4px;background:#eef8d8;color:#3a5a12;padding:2px 6px;border-radius:6px">🏪 ${esc(p.storeName)}</span>`:""}<h3>${esc(p.name)}</h3><div class="price">${money(p.price)}</div></div><div style="padding:0 10px 11px"><button class="add" data-add="${esc(p.id)}">＋ Savatga qo‘shish</button></div></article>`}).join('')||'<div class="empty">Bu bo‘limda mahsulot topilmadi.</div>';
 }
 $('products').addEventListener('click',e=>{const fav=e.target.closest('[data-fav]'),add=e.target.closest('[data-add]'),open=e.target.closest('[data-open]');if(fav){e.stopPropagation();toggleFav(fav.dataset.fav)}else if(add){e.stopPropagation();addToCart(add.dataset.add)}else if(open)openProductDetail(open.dataset.open)});
 function toggleFav(id){const exists=favorites.some(x=>String(x)===String(id));favorites=exists?favorites.filter(x=>String(x)!==String(id)):[...favorites,id];write(KEYS.favs,favorites);updateCounts();renderProducts()}
@@ -329,7 +331,7 @@ function renderCart(){
 $('cartBody').addEventListener('click',e=>{const inc=e.target.closest('[data-inc]'),dec=e.target.closest('[data-dec]'),rem=e.target.closest('[data-remove]');if(inc){cart[inc.dataset.inc]=(Number(cart[inc.dataset.inc])||0)+1}if(dec){cart[dec.dataset.dec]=Math.max(0,(Number(cart[dec.dataset.dec])||0)-1);if(!cart[dec.dataset.dec])delete cart[dec.dataset.dec]}if(rem)delete cart[rem.dataset.remove];write(KEYS.cart,cart);updateCounts();renderCart()});
 $('cartBtn').onclick=()=>{renderCart();openModal('cartModal')};
 $('checkoutBtn').onclick=()=>{$('orderName').value='';$('orderPhone').value='';$('orderAddress').value='';$('orderStatus').textContent='';closeModal('cartModal');openModal('checkoutModal')};
-$('confirmOrder').onclick=()=>{const name=$('orderName').value.trim(),phone=$('orderPhone').value.trim(),address=$('orderAddress').value.trim();const items=Object.entries(cart).filter(([id,q])=>Number(q)>0).map(([id,q])=>{const p=products.find(x=>String(x.id)===String(id));return p?{productId:id,name:p.name,price:Number(p.price),quantity:Number(q),...(read('shoply_cart_options_v1',{})[id]||{})}:null}).filter(Boolean);if(!name||!phone||!items.length){$('orderStatus').textContent='Ism, telefon va savatdagi mahsulotlar kerak.';return}const subtotal=items.reduce((sum,x)=>sum+x.price*x.quantity,0);const sums=calcCart();const total=sums.total;const lines=items.map((x,i)=>`${i+1}. ${x.name} — ${x.quantity} dona × ${money(x.price)} = ${money(x.price*x.quantity)}${x.color?' | Rang: '+x.color:''}${x.size?' | Hajm/Razmer: '+x.size:''}`).join('\n');const message=`🛍 SHOPLY — YANGI BUYURTMA\n\n👤 Ism: ${name}\n📞 Telefon: ${phone}\n📍 Manzil: ${address||'Ko‘rsatilmagan'}\n\n📦 Mahsulotlar:\n${lines}\n\nMahsulotlar: ${money(subtotal)}\n${sums.promo?`Promo-kod: ${sums.promo.code} (${sums.promo.percent}%)\nChegirma: -${money(sums.discount)}\n`:''}\n💳 Jami: ${money(total)}\n\nMijoz buyurtmani rasmiylashtirdi.`;const url='https://t.me/B_k_i_n?text='+encodeURIComponent(message);window.open(url,'_blank','noopener');$('orderStatus').textContent='Telegramda @B_k_i_n chati ochiladi. Xabar tayyor turadi — yuborish uchun Telegramdagi Send tugmasini bosing.';};
+$('confirmOrder').onclick=()=>{const name=$('orderName').value.trim(),phone=$('orderPhone').value.trim(),address=$('orderAddress').value.trim();const items=Object.entries(cart).filter(([id,q])=>Number(q)>0).map(([id,q])=>{const p=products.find(x=>String(x.id)===String(id));return p?{productId:id,name:p.name,price:Number(p.price),quantity:Number(q),sellerId:p.sellerId||null,storeName:p.storeName||null,...(read('shoply_cart_options_v1',{})[id]||{})}:null}).filter(Boolean);if(!name||!phone||!items.length){$('orderStatus').textContent='Ism, telefon va savatdagi mahsulotlar kerak.';return}const subtotal=items.reduce((sum,x)=>sum+x.price*x.quantity,0);const sums=calcCart();const total=sums.total;const lines=items.map((x,i)=>`${i+1}. ${x.name} — ${x.quantity} dona × ${money(x.price)} = ${money(x.price*x.quantity)}${x.color?' | Rang: '+x.color:''}${x.size?' | Hajm/Razmer: '+x.size:''}`).join('\n');const message=`🛍 SHOPLY — YANGI BUYURTMA\n\n👤 Ism: ${name}\n📞 Telefon: ${phone}\n📍 Manzil: ${address||'Ko‘rsatilmagan'}\n\n📦 Mahsulotlar:\n${lines}\n\nMahsulotlar: ${money(subtotal)}\n${sums.promo?`Promo-kod: ${sums.promo.code} (${sums.promo.percent}%)\nChegirma: -${money(sums.discount)}\n`:''}\n💳 Jami: ${money(total)}\n\nMijoz buyurtmani rasmiylashtirdi.`;const url='https://t.me/B_k_i_n?text='+encodeURIComponent(message);window.open(url,'_blank','noopener');$('orderStatus').textContent='Telegramda @B_k_i_n chati ochiladi. Xabar tayyor turadi — yuborish uchun Telegramdagi Send tugmasini bosing.';};
 let activeReviewProduct='';let reviewCache={};
 function openProductDetail(id){
  const p=products.find(x=>String(x.id)===String(id));if(!p)return;
@@ -373,8 +375,71 @@ $('favoritesBtn').onclick=()=>{showFavorites=true;activeCategory='all';document.
 $('shopNow').onclick=()=>$('productSection').scrollIntoView({behavior:'smooth'});
 function renderBanner(){if(!banners.length){$('heroTitle').textContent='O‘zingga mos uslubni top.';$('heroText').textContent='Har kun uchun zamonaviy tanlovlar.';$('heroEyebrow').textContent='SHOPLY · YANGI MAVSUM';$('heroBanner').style.backgroundImage="url('https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1500&q=85')";return}const b=banners[bannerIndex%banners.length];$('heroTitle').textContent=b.title||'SHOPLY';$('heroText').textContent=b.text||'';$('heroEyebrow').textContent=b.eyebrow||'SHOPLY';$('heroBanner').style.backgroundImage=`url("${String(b.image||'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1500&q=85').replace(/["\\]/g,'')}")`}
 renderBanner();if(banners.length>1)setInterval(()=>{bannerIndex=(bannerIndex+1)%banners.length;renderBanner()},5500);
-$('profileBtn').onclick=()=>{const p=read(KEYS.profile,{});$('profileName').value=p.name||'';$('profilePhone').value=p.phone||'';openModal('profileModal');toggleSidebar(false)};
+$('profileBtn').onclick=()=>{const p=read(KEYS.profile,{});$('profileName').value=p.name||'';$('profilePhone').value=p.phone||'';openModal('profileModal');toggleSidebar(false);refreshSellerProfileUI()};
 $('saveProfile').onclick=()=>{write(KEYS.profile,{name:$('profileName').value.trim(),phone:$('profilePhone').value.trim()});closeModal('profileModal')};
+let sellerState={application:null,seller:null,isSeller:false};
+async function refreshSellerProfileUI(){
+  const statusEl=$('sellerStatusText'),btn=$('sellerApplyBtn'),link=$('sellerPanelLink');
+  if(!statusEl)return;
+  if(tgUserId==='guest'){
+    statusEl.textContent='Tadbirkorlik uchun Telegram Mini App orqali kiring.';
+    btn.style.display='none';link.style.display='none';return;
+  }
+  try{
+    const r=await fetch('/api/seller/my-application?userId='+encodeURIComponent(tgUserId),{cache:'no-store'});
+    const d=await r.json();
+    sellerState=d;
+    btn.style.display='none';link.style.display='none';
+    if(d.isSeller&&d.seller){
+      if(d.seller.status==='frozen'){
+        statusEl.textContent='Hisobingiz muzlatilgan. Qarz: '+(Number(d.seller.debt)||0).toLocaleString('uz-UZ')+' so‘m. Admin bilan bog‘laning.';
+        link.style.display='block';
+      }else{
+        statusEl.textContent='Siz tasdiqlangan tadbirkorsiz. Do‘kon: '+(d.seller.storeName||'');
+        link.style.display='block';
+      }
+      const seen=localStorage.getItem('shoply_seller_congrats_'+tgUserId);
+      if(!seen&&d.seller.approvedAt){localStorage.setItem('shoply_seller_congrats_'+tgUserId,'1');openModal('sellerCongratsModal')}
+    }else if(d.application){
+      if(d.application.status==='pending'){statusEl.textContent='Arizangiz ko‘rib chiqilmoqda (kutilmoqda).';}
+      else if(d.application.status==='rejected'){statusEl.textContent='Ariza rad etildi'+(d.application.rejectReason?': '+d.application.rejectReason:'')+'. Qayta ariza berishingiz mumkin.';btn.style.display='block';btn.textContent='Qayta ariza berish'}
+      else{statusEl.textContent='Ariza holati: '+d.application.status;btn.style.display='block'}
+    }else{
+      statusEl.textContent='Hali tadbirkor emassiz. Savdo qilish uchun ariza topshiring.';
+      btn.style.display='block';btn.textContent='Savdo qilish uchun ariza';
+    }
+  }catch(e){statusEl.textContent='Holatni yuklab bo‘lmadi. Keyinroq urinib ko‘ring.';}
+}
+if($('sellerApplyBtn'))$('sellerApplyBtn').onclick=()=>{
+  const p=read(KEYS.profile,{});
+  $('saFullName').value=p.name||'';$('saPhone').value=p.phone||'';
+  try{const u=window.Telegram?.WebApp?.initDataUnsafe?.user;if(u?.username)$('saTelegram').value='@'+u.username;if(u?.first_name&&!$('saFullName').value)$('saFullName').value=[u.first_name,u.last_name].filter(Boolean).join(' ')}catch(e){}
+  $('saAgree').checked=false;$('saStatus').textContent='';
+  closeModal('profileModal');openModal('sellerApplyModal');
+};
+if($('saSubmit'))$('saSubmit').onclick=async()=>{
+  const btn=$('saSubmit');btn.disabled=true;$('saStatus').textContent='Yuborilmoqda...';$('saStatus').style.color='';
+  try{
+    if(!$('saAgree').checked){throw new Error('3% komissiya shartiga rozilik bildirishingiz shart.')}
+    const body={
+      userId:tgUserId,
+      fullName:$('saFullName').value.trim(),
+      storeName:$('saStoreName').value.trim(),
+      phone:$('saPhone').value.trim(),
+      email:$('saEmail').value.trim(),
+      telegramUsername:$('saTelegram').value.trim(),
+      photo:$('saPhoto').value.trim(),
+      extra:$('saExtra').value.trim(),
+      agreedCommission:true
+    };
+    const r=await fetch('/api/seller/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.error||'Xatolik');
+    $('saStatus').textContent=d.message||'Ariza yuborildi';$('saStatus').style.color='#16803c';
+    setTimeout(()=>{closeModal('sellerApplyModal');refreshSellerProfileUI()},1200);
+  }catch(e){$('saStatus').textContent=e.message||'Xatolik';$('saStatus').style.color='#c33'}
+  finally{btn.disabled=false}
+};
 $('settingsBtn').onclick=()=>{ $('themeSelect').value=document.body.dataset.theme;openModal('settingsModal');toggleSidebar(false)};
 $('saveSettings').onclick=()=>{document.body.dataset.theme=$('themeSelect').value;localStorage.setItem(KEYS.theme,$('themeSelect').value);closeModal('settingsModal')};
 $('adminBtn').onclick=()=>{const gate=document.createElement('div');gate.className='modal-bg open';gate.innerHTML='<div class=modal><div class=modal-head><h2>Admin panelga kirish</h2><button class=close type=button>✕</button></div><label>Login</label><input class=field id=shoplyGateLogin autocomplete=username value=shoply><label>Parol</label><input class=field id=shoplyGatePass type=password placeholder=Parol><p id=shoplyGateError class=muted></p><button class=primary id=shoplyGateGo style=width:100%>Kirish</button></div>';document.body.appendChild(gate);gate.querySelector('.close').onclick=()=>gate.remove();gate.querySelector('#shoplyGateGo').onclick=async()=>{const btn=gate.querySelector('#shoplyGateGo');btn.disabled=true;try{const r=await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({login:gate.querySelector('#shoplyGateLogin').value.trim(),password:gate.querySelector('#shoplyGatePass').value})});const d=await r.json();if(r.ok&&d.ok){sessionStorage.setItem('shoply_admin_session','1');location.href='admin.html'}else gate.querySelector('#shoplyGateError').textContent='Login yoki parol noto‘g‘ri'}catch{gate.querySelector('#shoplyGateError').textContent='Login yoki parol noto‘g‘ri'}finally{btn.disabled=false}};};
@@ -382,7 +447,7 @@ window.addEventListener('storage',e=>{if([KEYS.products,KEYS.banners].includes(e
 try{const localBuilder=JSON.parse(localStorage.getItem('shoply_site_builder_v1')||'{}');applyStoreTheme(localBuilder.theme||'current');applyHomeLayout(localBuilder.layoutOrder||[])}catch(e){}
 async function loadCloudState(){try{const r=await fetch('/api/state',{cache:'no-store'});if(!r.ok)throw new Error('Server javobi: '+r.status);const d=await r.json();if(Array.isArray(d.mono_store_products_v2)){products=d.mono_store_products_v2;catalogOrderIds=null;localStorage.setItem(KEYS.products,JSON.stringify(products))}if(Array.isArray(d.mono_store_slides_v2)){banners=d.mono_store_slides_v2;localStorage.setItem(KEYS.banners,JSON.stringify(banners))}if(d.shoply_site_builder_v1){localStorage.setItem('shoply_site_builder_v1',JSON.stringify(d.shoply_site_builder_v1));applyStoreTheme(d.shoply_site_builder_v1.theme||'current');applyHomeLayout(d.shoply_site_builder_v1.layoutOrder||[])}if(d.shoply_reviews_v1){reviewCache=d.shoply_reviews_v1;}if(Array.isArray(d.shoply_promo_codes_v1)){localStorage.setItem(PROMO_KEY,JSON.stringify(d.shoply_promo_codes_v1));}renderBanner();renderProducts()}catch(e){console.warn('SHOPLY: server bilan bog‘lanmadi',e)}finally{document.getElementById('shoplyWakeLoader')?.classList.add('done')}}
 try{window.Telegram?.WebApp?.ready?.();window.Telegram?.WebApp?.expand?.()}catch(e){}
-updateCounts();renderProducts();loadCloudState();
+updateCounts();renderProducts();loadCloudState();setTimeout(refreshSellerProfileUI,800);
 </script>
 </body>
 </html>

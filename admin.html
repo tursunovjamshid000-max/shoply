@@ -231,6 +231,7 @@ html,body{max-width:100%;overflow-x:hidden!important}
   <button class="nav" data-section="orders">📦 Buyurtmalar</button>
   <button class="nav" data-section="reviews">⭐ Sharhlar</button>
   <button class="nav" data-section="banners">▧ Bannerlar</button>
+  <button class="nav" data-section="sellers">🏪 Tadbirkorlar</button>
   <button class="nav" data-section="settings">⚙ Sozlamalar</button>
   <div class="bottom">
     <button class="secondary" id="backStore">↖ Do‘konga qaytish</button>
@@ -336,6 +337,38 @@ html,body{max-width:100%;overflow-x:hidden!important}
   </div>
 </section>
 
+
+<section class="section" id="sellers">
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Jami tadbirkorlar</div><div class="stat-value" id="selTotal">0</div></div>
+    <div class="stat"><div class="stat-label">Faol</div><div class="stat-value" id="selActive">0</div></div>
+    <div class="stat"><div class="stat-label">Muzlatilgan</div><div class="stat-value" id="selFrozen">0</div></div>
+    <div class="stat"><div class="stat-label">Kutilayotgan arizalar</div><div class="stat-value" id="selPending">0</div></div>
+  </div>
+  <div class="panel" style="margin-bottom:14px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <button class="primary" type="button" id="tabApps" style="padding:8px 14px">Arizalar</button>
+      <button class="secondary" type="button" id="tabSellers" style="padding:8px 14px">Tadbirkorlar</button>
+      <input class="field search" id="sellerSearch" placeholder="Qidiruv: do‘kon, ism, telegram..." style="flex:1;min-width:180px;margin:0">
+      <select class="field" id="sellerFilter" style="width:auto;margin:0;min-width:140px">
+        <option value="all">Barchasi</option>
+        <option value="active">Faol</option>
+        <option value="frozen">Muzlatilgan</option>
+      </select>
+      <button class="secondary" type="button" id="refreshSellers">↻ Yangilash</button>
+    </div>
+    <div id="appsPanel">
+      <div class="table-wrap"><table><thead><tr><th>Rasm</th><th>Ism / Do‘kon</th><th>Aloqa</th><th>Sana</th><th>Holat</th><th>Amallar</th></tr></thead><tbody id="appsRows"><tr><td colspan="6">Yuklanmoqda...</td></tr></tbody></table></div>
+    </div>
+    <div id="sellersPanel" style="display:none">
+      <div class="table-wrap"><table><thead><tr><th>#</th><th>Do‘kon</th><th>Tadbirkor</th><th>Telegram</th><th>Holat</th><th>Mahsulot</th><th>Savdo</th><th>Qarz</th><th>Amallar</th></tr></thead><tbody id="sellersRows"><tr><td colspan="9">Yuklanmoqda...</td></tr></tbody></table></div>
+    </div>
+  </div>
+  <div class="panel" id="sellerDetail" style="display:none">
+    <div class="toolbar"><h2 id="sdTitle">Tadbirkor</h2><button class="secondary" type="button" id="sdClose">Yopish</button></div>
+    <div id="sdBody"></div>
+  </div>
+</section>
 <section class="section" id="settings">
   <div class="panel" style="margin-bottom:15px">
     <h2>Promo-kodlar va chegirmalar</h2>
@@ -786,8 +819,8 @@ async function renderOrders(){
  const body=$('ordersRows');body.innerHTML='<tr><td colspan="6">Buyurtmalar yuklanmoqda...</td></tr>';
  try{const r=await fetch('/api/orders',{cache:'no-store'});if(!r.ok)throw new Error();const list=await r.json();const orders=Array.isArray(list)?list:[];
  $('ordersTotal').textContent=orders.length;$('ordersNew').textContent=orders.filter(o=>(o.status||'Yangi')==='Yangi').length;$('ordersProcess').textContent=orders.filter(o=>o.status==='Jarayonda').length;$('ordersDone').textContent=orders.filter(o=>o.status==='Yetkazildi').length;
- body.innerHTML=orders.length?orders.map(o=>`<tr><td><b>${esc(o.id||'—')}</b></td><td>${esc(o.name||'—')}<br><small>${esc(o.phone||'')}</small><br><small>${esc(o.address||'')}</small></td><td>${(o.items||[]).map(i=>esc(i.name)+' × '+Number(i.quantity||1)).join('<br>')}</td><td><b>${sumMoney(o.total)}</b></td><td>${esc(new Date(o.createdAt).toLocaleString('uz-UZ'))}</td><td><select class="field order-status" data-order="${esc(o.id)}" style="min-width:125px"><option ${o.status==='Yangi'?'selected':''}>Yangi</option><option ${o.status==='Jarayonda'?'selected':''}>Jarayonda</option><option ${o.status==='Yetkazildi'?'selected':''}>Yetkazildi</option><option ${o.status==='Bekor qilindi'?'selected':''}>Bekor qilindi</option></select></td></tr>`).join(''):'<tr><td colspan="6">Hozircha buyurtma yo‘q.</td></tr>';
- body.querySelectorAll('.order-status').forEach(sel=>sel.onchange=async()=>{try{const state=await fetch('/api/state/shoply_orders_v1',{cache:'no-store'}).then(x=>x.json());const arr=Array.isArray(state.value)?state.value:[];const order=arr.find(x=>String(x.id)===String(sel.dataset.order));if(order){order.status=sel.value;const saved=await fetch('/api/state/shoply_orders_v1',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({value:arr})});if(!saved.ok)throw new Error();renderOrders()}}catch{alert('Buyurtma holatini saqlab bo‘lmadi.')}});
+ body.innerHTML=orders.length?orders.map(o=>`<tr><td><b>${esc(o.id||'—')}</b></td><td>${esc(o.name||'—')}<br><small>${esc(o.phone||'')}</small><br><small>${esc(o.address||'')}</small></td><td>${(o.items||[]).map(i=>esc(i.name)+' × '+Number(i.quantity||1)).join('<br>')}</td><td><b>${sumMoney(o.total)}</b></td><td>${esc(new Date(o.createdAt).toLocaleString('uz-UZ'))}</td><td><select class="field order-status" data-order="${esc(o.id)}" style="min-width:125px"><option ${o.status==='Yangi'?'selected':''}>Yangi</option><option ${o.status==='Jarayonda'?'selected':''}>Jarayonda</option><option ${o.status==='Yetkazilmoqda'?'selected':''}>Yetkazilmoqda</option><option ${o.status==='Yetkazildi'?'selected':''}>Yetkazildi</option><option ${o.status==='Bekor qilindi'?'selected':''}>Bekor qilindi</option></select></td></tr>`).join(''):'<tr><td colspan="6">Hozircha buyurtma yo‘q.</td></tr>';
+ body.querySelectorAll('.order-status').forEach(sel=>sel.onchange=async()=>{try{const r=await fetch('/api/orders/'+encodeURIComponent(sel.dataset.order),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:sel.value})});if(!r.ok)throw new Error();await renderOrders()}catch{alert('Buyurtma holatini saqlab bo‘lmadi.')}});
  }catch{body.innerHTML='<tr><td colspan="6">Buyurtmalarni yuklab bo‘lmadi. Server va Supabase ulanishini tekshiring.</td></tr>'}
 }
 async function renderReviews(){const box=$('reviewsList');box.innerHTML='<p class="muted">Sharhlar yuklanmoqda...</p>';try{const r=await fetch('/api/state/shoply_reviews_v1',{cache:'no-store'});const d=await r.json();const data=d.value||{};const rows=[];Object.entries(data).forEach(([id,list])=>(Array.isArray(list)?list:[]).forEach(v=>rows.push({...v,productId:id})));const avg=rows.length?rows.reduce((a,b)=>a+(Number(b.rating)||5),0)/rows.length:0;$('reviewsTotal').textContent=rows.length;$('reviewsAverage').textContent=rows.length?avg.toFixed(1)+'/5':'—';box.innerHTML=rows.length?rows.slice().reverse().map(v=>`<article style="padding:14px 0;border-bottom:1px solid var(--line)"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><b>${esc(v.name||'Xaridor')}</b><span style="color:#d69b20">${'★'.repeat(Number(v.rating)||5)}${'☆'.repeat(5-(Number(v.rating)||5))}</span></div><div class="muted">Mahsulot ID: ${esc(v.productId)} · ${esc(v.createdAt||'')}</div><p>${esc(v.text||'')}</p></article>`).join(''):'<p class="muted">Hozircha sharhlar yo‘q.</p>'}catch{box.innerHTML='<p class="muted">Sharhlarni yuklab bo‘lmadi.</p>'}}
@@ -796,7 +829,7 @@ $('refreshOrders').onclick=renderOrders;$('refreshReviews').onclick=renderReview
 function showSection(id){
  document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active',s.id===id));
  document.querySelectorAll('[data-section]').forEach(b=>b.classList.toggle('active',b.dataset.section===id));
- const names={dashboard:'Boshqaruv',products:'Mahsulotlar',cart:'Savat statistikasi',orders:'Buyurtmalar',reviews:'Sharhlar',banners:'Bannerlar',settings:'Sozlamalar'};
+ const names={dashboard:'Boshqaruv',products:'Mahsulotlar',cart:'Savat statistikasi',orders:'Buyurtmalar',reviews:'Sharhlar',banners:'Bannerlar',sellers:'Tadbirkorlar',settings:'Sozlamalar'};
  $('pageTitle').textContent=names[id]||'Admin panel';
  $('headerAdd').classList.toggle('hidden',id!=='products');
  if(id==='dashboard'||id==='cart')renderCart();
@@ -806,7 +839,150 @@ function showSection(id){
  if(id==='reviews')renderReviews();
  if(id==='settings')loadProfile();
 }
+
 document.querySelectorAll('[data-section]').forEach(b=>b.onclick=()=>showSection(b.dataset.section));
+
+/* ===== Tadbirkorlar moduli ===== */
+let adminApps=[], adminSellersList=[];
+function moneyUZ(v){return Number(v||0).toLocaleString('uz-UZ')+' so‘m'}
+async function loadSellerAdmin(){
+  try{
+    const [ra,rs]=await Promise.all([
+      fetch('/api/admin/seller-applications',{cache:'no-store'}),
+      fetch('/api/admin/sellers',{cache:'no-store'})
+    ]);
+    adminApps=ra.ok?await ra.json():[];
+    adminSellersList=rs.ok?await rs.json():[];
+    renderSellerAdmin();
+  }catch(e){console.warn('Seller admin load',e)}
+}
+function renderSellerAdmin(){
+  const pending=adminApps.filter(a=>a.status==='pending').length;
+  $('selPending')&&($('selPending').textContent=pending);
+  $('selTotal')&&($('selTotal').textContent=adminSellersList.length);
+  $('selActive')&&($('selActive').textContent=adminSellersList.filter(s=>s.status==='active').length);
+  $('selFrozen')&&($('selFrozen').textContent=adminSellersList.filter(s=>s.status==='frozen').length);
+  renderAppsTable();
+  renderSellersTable();
+}
+function renderAppsTable(){
+  const body=$('appsRows');if(!body)return;
+  const list=adminApps.slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+  body.innerHTML=list.length?list.map(a=>{
+    const photo=a.photo?`<img src="${esc(a.photo)}" style="width:40px;height:40px;border-radius:50%;object-fit:cover">`:'—';
+    const actions=a.status==='pending'?`<button class="primary" data-app-approve="${esc(a.id)}" style="padding:6px 10px;font-size:12px">Tasdiqlash</button> <button class="danger" data-app-reject="${esc(a.id)}" style="padding:6px 10px;font-size:12px">Rad etish</button>`:`<span class="muted">${esc(a.status)}</span>`;
+    return `<tr>
+      <td>${photo}</td>
+      <td><b>${esc(a.fullName)}</b><br><span class="muted">${esc(a.storeName)}</span></td>
+      <td>${esc(a.phone)}<br>${esc(a.email||'')}<br>${esc(a.telegramUsername||'')}</td>
+      <td>${esc((a.createdAt||'').slice(0,16))}</td>
+      <td>${esc(a.status)}${a.rejectReason?('<br><span class="muted">'+esc(a.rejectReason)+'</span>'):''}</td>
+      <td>${actions}</td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="6">Arizalar yo‘q</td></tr>';
+}
+function renderSellersTable(){
+  const body=$('sellersRows');if(!body)return;
+  const q=($('sellerSearch')?.value||'').toLowerCase();
+  const f=$('sellerFilter')?.value||'all';
+  let list=adminSellersList.slice();
+  if(f==='active')list=list.filter(s=>s.status==='active');
+  if(f==='frozen')list=list.filter(s=>s.status==='frozen');
+  if(q)list=list.filter(s=>[s.storeName,s.fullName,s.telegramUsername,s.phone].join(' ').toLowerCase().includes(q));
+  body.innerHTML=list.length?list.map((s,i)=>`<tr>
+    <td>${i+1}</td>
+    <td><b>${esc(s.storeName)}</b></td>
+    <td>${esc(s.fullName)}</td>
+    <td>${esc(s.telegramUsername||'—')}</td>
+    <td>${esc(s.status)}</td>
+    <td>${Number(s.productsCount)||0}</td>
+    <td>${moneyUZ(s.totalSales)}</td>
+    <td>${moneyUZ(s.debt)}</td>
+    <td><button class="secondary" data-seller-view="${esc(s.userId)}" style="padding:6px 10px;font-size:12px">Ko‘rish</button></td>
+  </tr>`).join(''):'<tr><td colspan="9">Tadbirkorlar yo‘q</td></tr>';
+}
+if($('tabApps'))$('tabApps').onclick=()=>{$('appsPanel').style.display='block';$('sellersPanel').style.display='none';$('tabApps').className='primary';$('tabSellers').className='secondary'};
+if($('tabSellers'))$('tabSellers').onclick=()=>{$('appsPanel').style.display='none';$('sellersPanel').style.display='block';$('tabSellers').className='primary';$('tabApps').className='secondary'};
+if($('sellerSearch'))$('sellerSearch').oninput=()=>renderSellersTable();
+if($('sellerFilter'))$('sellerFilter').onchange=()=>renderSellersTable();
+if($('refreshSellers'))$('refreshSellers').onclick=()=>loadSellerAdmin();
+if($('appsRows'))$('appsRows').addEventListener('click',async e=>{
+  const ap=e.target.closest('[data-app-approve]');
+  const rj=e.target.closest('[data-app-reject]');
+  if(ap){
+    if(!confirm('Arizani tasdiqlaysizmi?'))return;
+    const r=await fetch('/api/admin/seller-applications/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:ap.dataset.appApprove,action:'approve'})});
+    const d=await r.json();if(!r.ok){alert(d.error||'Xato');return}await loadSellerAdmin();
+  }
+  if(rj){
+    const reason=prompt('Rad etish sababi (ixtiyoriy):')||'';
+    const r=await fetch('/api/admin/seller-applications/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:rj.dataset.appReject,action:'reject',reason})});
+    const d=await r.json();if(!r.ok){alert(d.error||'Xato');return}await loadSellerAdmin();
+  }
+});
+if($('sellersRows'))$('sellersRows').addEventListener('click',e=>{
+  const v=e.target.closest('[data-seller-view]');
+  if(!v)return;
+  const s=adminSellersList.find(x=>String(x.userId)===String(v.dataset.sellerView));
+  if(!s)return;
+  $('sellerDetail').style.display='block';
+  $('sdTitle').textContent=s.storeName||'Tadbirkor';
+  $('sdBody').innerHTML=`
+    ${s.photo?`<img src="${esc(s.photo)}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;margin-bottom:10px">`:''}
+    <p><b>Ism:</b> ${esc(s.fullName)}</p>
+    <p><b>Telefon:</b> ${esc(s.phone)}</p>
+    <p><b>Email:</b> ${esc(s.email||'—')}</p>
+    <p><b>Telegram:</b> ${esc(s.telegramUsername||'—')}</p>
+    <p><b>Holat:</b> ${esc(s.status)}</p>
+    <p><b>Mahsulotlar:</b> ${Number(s.productsCount)||0}</p>
+    <p><b>Jami savdo:</b> ${moneyUZ(s.totalSales)}</p>
+    <p><b>Komissiya qarzi:</b> ${moneyUZ(s.debt)}</p>
+    <p><b>Tasdiqlangan:</b> ${esc((s.approvedAt||'').slice(0,16))}</p>
+    <p><b>Oxirgi faollik:</b> ${esc((s.lastActiveAt||'').slice(0,16))}</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+      ${s.status==='frozen'
+        ?`<button class="primary" id="sdUnfreeze">Qayta faollashtirish</button>`
+        :`<button class="danger" id="sdFreeze">Hisobni muzlatish</button>`}
+      <button class="secondary" id="sdProducts">Mahsulotlarini ko‘rish</button>
+    </div>
+    <div id="sdProductsList" style="margin-top:14px"></div>
+  `;
+  const freezeBtn=$('sdFreeze'),unfreezeBtn=$('sdUnfreeze');
+  if(freezeBtn)freezeBtn.onclick=async()=>{
+    const reason=prompt('Muzlatish sababi:')||'Admin tomonidan muzlatildi';
+    const r=await fetch('/api/admin/sellers/freeze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:s.userId,action:'freeze',reason})});
+    const d=await r.json();if(!r.ok){alert(d.error||'Xato');return}await loadSellerAdmin();v.click();
+  };
+  if(unfreezeBtn)unfreezeBtn.onclick=async()=>{
+    const r=await fetch('/api/admin/sellers/freeze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:s.userId,action:'unfreeze'})});
+    const d=await r.json();if(!r.ok){alert(d.error||'Xato');return}await loadSellerAdmin();v.click();
+  };
+  if($('sdProducts'))$('sdProducts').onclick=async()=>{
+    const all=readArray(PRODUCT_KEY,[]);
+    const mine=(Array.isArray(all)?all:[]).filter(p=>String(p.sellerId)===String(s.userId));
+    $('sdProductsList').innerHTML=mine.length?`<div class="product-grid">`+mine.map(p=>`
+      <div class="product-card"><div class="product-image"><img src="${esc(p.image||'')}" alt=""></div>
+      <div class="product-body"><div class="product-name">${esc(p.name)}</div>
+      <div style="font-weight:800;margin:6px 0">${moneyUZ(p.price)}</div>
+      <button class="danger" data-del-seller-prod="${esc(p.id)}" style="width:100%">O‘chirish</button></div></div>`).join('')+`</div>`:'<p class="muted">Mahsulotlar yo‘q</p>';
+    $('sdProductsList').querySelectorAll('[data-del-seller-prod]').forEach(btn=>{
+      btn.onclick=()=>{
+        if(!confirm('Mahsulot o‘chirilsinmi?'))return;
+        const list=readArray(PRODUCT_KEY,[]);
+        const next=(Array.isArray(list)?list:[]).filter(p=>String(p.id)!==btn.dataset.delSellerProd);
+        save(PRODUCT_KEY,next);
+        products=next;
+        renderProducts&&renderProducts();
+        btn.closest('.product-card')?.remove();
+      };
+    });
+  };
+});
+if($('sdClose'))$('sdClose').onclick=()=>$('sellerDetail').style.display='none';
+// load when opening sellers section
+const _origShow=showSection;
+showSection=function(id){_origShow(id);if(id==='sellers')loadSellerAdmin()};
+
 $('headerAdd').onclick=()=>openProduct();
 $('addProduct').onclick=()=>openProduct();
 $('cancelProduct').onclick=closeProduct;
