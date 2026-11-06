@@ -68,10 +68,10 @@ a{color:inherit}
 .field{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:11px;background:#fafbf8;outline:none;margin:0 0 12px}
 .field:focus{border-color:var(--accent);background:#fff}
 .label{font-size:12px;font-weight:750;margin-bottom:5px;display:block;color:#3a3d35}
-.product-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.product-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .pcard{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;transition:.2s}
 .pcard:hover{box-shadow:var(--shadow);transform:translateY(-2px)}
-.pcard img{width:100%;height:150px;object-fit:cover;background:#eef0ea}
+.pcard img{width:100%;height:120px;object-fit:cover;background:#eef0ea}
 .pcard .body{padding:12px;flex:1;display:flex;flex-direction:column}
 .pcard h3{font-size:14px;font-weight:800;line-height:1.3;margin-bottom:4px}
 .pcard .price{font-weight:950;font-size:15px;margin:4px 0}
@@ -98,6 +98,7 @@ td{padding:12px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
 .mobile-nav button .ico{font-size:18px}
 .mobile-nav button.active{color:#2a4a0a;background:var(--soft)}
 @media(max-width:900px){
+  .product-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
   .sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-105%);transition:transform .28s;width:min(280px,86vw);box-shadow:20px 0 50px rgba(0,0,0,.08)}
   body.drawer-open .sidebar{transform:translateX(0)}
   body.drawer-open .scrim{display:block}
@@ -109,7 +110,20 @@ td{padding:12px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
   .page-title{font-size:18px}
   .mobile-nav{display:flex}
 }
-@media(max-width:420px){.product-grid{grid-template-columns:1fr}}
+@media(max-width:420px){.product-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+#myProducts.product-grid, .product-grid#myProducts{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:10px!important;
+}
+@media(min-width:900px){
+  #myProducts.product-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+}
+.pcard img{height:110px!important}
+.pcard .body{padding:10px!important}
+.pcard h3{font-size:13px!important;min-height:0!important}
+
 </style>
 </head>
 <body>
@@ -259,7 +273,19 @@ td{padding:12px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
     </div>
     <input type="hidden" id="pmId">
     <label class="label">Mahsulot nomi *</label><input class="field" id="pmName" maxlength="150">
-    <label class="label">Kategoriya</label><input class="field" id="pmCategory" maxlength="80">
+    <label class="label">Kategoriya</label>
+    <select class="field" id="pmCategory">
+      <option value="Elektronika">Elektronika</option>
+      <option value="Kiyim">Kiyim</option>
+      <option value="Poyabzal">Poyabzal</option>
+      <option value="Uy-ro‘zg‘or">Uy-ro‘zg‘or</option>
+      <option value="Go‘zallik">Go‘zallik</option>
+      <option value="Bolalar">Bolalar</option>
+      <option value="Sport">Sport</option>
+      <option value="Oziq-ovqat">Oziq-ovqat</option>
+      <option value="Aksessuar">Aksessuar</option>
+      <option value="Boshqa">Boshqa</option>
+    </select>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div><label class="label">Narxi *</label><input class="field" id="pmPrice" type="number" min="0" step="1000"></div>
       <div><label class="label">Eski narx</label><input class="field" id="pmOldPrice" type="number" min="0" step="1000"></div>
@@ -269,9 +295,12 @@ td{padding:12px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
     <label class="label">Qo‘shimcha rasmlar (URL)</label><textarea class="field" id="pmImages" rows="2"></textarea>
     <label class="label">Tavsif</label><textarea class="field" id="pmDesc" rows="3" maxlength="2000"></textarea>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div><label class="label">Ranglar</label><input class="field" id="pmColors"></div>
-      <div><label class="label">O‘lchamlar</label><input class="field" id="pmSizes"></div>
+      <div><label class="label">Ranglar (vergul bilan)</label><input class="field" id="pmColors" placeholder="Qora, Oq, Ko‘k"></div>
+      <div><label class="label">O‘lchamlar</label><input class="field" id="pmSizes" placeholder="S, M, L"></div>
     </div>
+    <label class="label">Rang rasmlari (har bir rang uchun 1 URL, vergul bilan — ranglar tartibida)</label>
+    <textarea class="field" id="pmColorImages" rows="2" placeholder="https://qora.jpg, https://oq.jpg, https://kok.jpg"></textarea>
+    <p class="muted" style="margin:-6px 0 10px;font-size:11px">Masalan 3 rang bo‘lsa 3 ta rasm URL yozing. Xaridor rang tanlasa shu rasm chiqadi. Bo‘sh qoldirilsa oddiy asosiy rasm qoladi.</p>
     <label class="label">Miqdor</label><input class="field" id="pmStock" type="number" min="0">
     <button class="btn-primary" id="pmSave" type="button">Saqlash</button>
     <p class="muted" id="pmStatus" style="margin-top:10px"></p>
@@ -284,8 +313,8 @@ const tgUserId=(()=>{try{return window.Telegram?.WebApp?.initDataUnsafe?.user?.i
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=v=>Number(v||0).toLocaleString('uz-UZ')+' so‘m';
-const TOKEN_KEY='shoply_seller_token';
-let seller=null,myProducts=[],myOrders=[],commissions=[],sessionToken=localStorage.getItem(TOKEN_KEY)||'';
+const TOKEN_KEY='shoply_seller_token';const tokenStore=sessionStorage;
+let seller=null,myProducts=[],myOrders=[],commissions=[],sessionToken=tokenStore.getItem(TOKEN_KEY)||'';
 try{window.Telegram?.WebApp?.ready?.();window.Telegram?.WebApp?.expand?.()}catch(e){}
 const titles={home:['Bosh sahifa','Do‘koningiz statistikasi'],products:['Mahsulotlarim','O‘z mahsulotlaringiz'],orders:['Buyurtmalar','Faqat sizning mahsulotlaringiz'],debt:['Qarzdorlik','3% komissiya'],stats:['Statistika','Real ma’lumotlar'],reviews:['Sharhlar','Mahsulotlaringizga yozilgan fikrlar'],messages:['Xabarlar','Admin ogohlantirishlari'],settings:['Sozlamalar','Login, parol va profil']};
 function goSection(id){
@@ -317,7 +346,7 @@ function renderSettings(){
   if(!seller)return;
   $('settingsProfile').innerHTML=`
     <div style="display:flex;gap:14px;align-items:center;margin-bottom:14px">
-      ${seller.photo?`<img src="${esc(seller.photo)}" style="width:64px;height:64px;border-radius:50%;object-fit:cover">`:`<div class="avatar" style="width:64px;height:64px;font-size:22px">${esc((seller.storeName||'T')[0])}</div>`}
+      ${seller.logo||seller.photo?`<img src="${esc(seller.logo||seller.photo)}" style="width:64px;height:64px;border-radius:14px;object-fit:cover">`:`<div class="avatar" style="width:64px;height:64px;font-size:22px;border-radius:14px">${esc((seller.storeName||'T')[0])}</div>`}
       <div><div style="font-weight:900;font-size:16px">${esc(seller.storeName)}</div><div class="muted">${esc(seller.fullName)}</div>
       <span class="badge ${seller.status==='frozen'?'frozen':''}" style="margin-top:6px">${esc(seller.status)}</span></div>
     </div>
@@ -325,7 +354,26 @@ function renderSettings(){
     <p style="margin:6px 0"><b>Telefon:</b> ${esc(seller.phone||'—')}</p>
     <p style="margin:6px 0"><b>Email:</b> ${esc(seller.email||'—')}</p>
     <p style="margin:6px 0"><b>Telegram:</b> ${esc(seller.telegramUsername||'—')}</p>
-    <p class="muted" style="margin-top:10px;font-size:12px">Login Sozlamalarda saqlanadi. Parolni shu yerdan o‘zgartiring.</p>`;
+    <hr style="border:0;border-top:1px solid var(--line);margin:14px 0">
+    <h3 style="font-size:14px;margin-bottom:8px">Do‘kon logosi / profil</h3>
+    <label class="label">Do‘kon nomi</label><input class="field" id="edStoreName" value="${esc(seller.storeName||'')}">
+    <label class="label">Logo URL</label><input class="field" id="edLogo" value="${esc(seller.logo||'')}">
+    <label class="label">Profil rasm URL</label><input class="field" id="edPhoto" value="${esc(seller.photo||'')}">
+    <label class="label">Telefon</label><input class="field" id="edPhone" value="${esc(seller.phone||'')}">
+    <button class="btn btn-accent" type="button" id="saveProfileBtn">Profilni saqlash</button>
+    <p class="muted" id="profMsg" style="margin-top:8px"></p>
+    <p class="muted" style="margin-top:10px;font-size:12px">Login sessiya tugagach (brauzer yopilganda) qayta kiritiladi.</p>`;
+  const sp=$('saveProfileBtn');
+  if(sp)sp.onclick=async()=>{
+    $('profMsg').textContent='Saqlanmoqda...';
+    try{
+      const r=await fetch('/api/seller/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+        userId:seller.userId,storeName:$('edStoreName').value.trim(),logo:$('edLogo').value.trim(),photo:$('edPhoto').value.trim(),phone:$('edPhone').value.trim()
+      })});
+      const d=await r.json();if(!r.ok)throw new Error(d.error||'Xato');
+      await loadSellerData();$('profMsg').textContent='Saqlandi ✓';$('profMsg').style.color='#2a7a20';
+    }catch(e){$('profMsg').textContent=e.message;$('profMsg').style.color='#b4232e'}
+  };
 }
 async function loadSellerData(){
   const q=sessionToken?('token='+encodeURIComponent(sessionToken)):('userId='+encodeURIComponent(seller?.userId||tgUserId));
@@ -412,18 +460,20 @@ if($('markAllRead'))$('markAllRead').onclick=async()=>{
 };
 
 async function enterApp(){showApp();await loadSellerData();await Promise.all([loadProducts(),loadOrders(),loadCommissions()]);await loadReviews();await loadMessages()}
-$('loginBtn').onclick=async()=>{const btn=$('loginBtn');btn.disabled=true;$('loginMsg').textContent='';$('loginMsg').className='auth-msg';try{const r=await fetch('/api/seller/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({login:$('loginUser').value.trim(),password:$('loginPass').value})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Xato');sessionToken=d.token;localStorage.setItem(TOKEN_KEY,sessionToken);seller=d.seller;await enterApp()}catch(e){$('loginMsg').textContent=e.message;$('loginMsg').className='auth-msg err'}finally{btn.disabled=false}};
-$('setupBtn').onclick=async()=>{const btn=$('setupBtn');btn.disabled=true;$('setupMsg').textContent='';$('setupMsg').className='auth-msg';try{if(tgUserId==='guest')throw new Error('Telegram Mini App orqali kiring, keyin login yarating.');const chk=await fetch('/api/seller/my-application?userId='+encodeURIComponent(tgUserId),{cache:'no-store'});const info=await chk.json();if(!info.isSeller)throw new Error('Hali tasdiqlanmagansiz. Admin tasdiqlashini kuting.');if(info.seller&&info.seller.login)throw new Error('Sizda allaqachon login bor. Kirish sahifasidan foydalaning.');const r=await fetch('/api/seller/set-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:tgUserId,login:$('setupLogin').value.trim(),password:$('setupPass').value,password2:$('setupPass2').value})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Xato');sessionToken=d.token;localStorage.setItem(TOKEN_KEY,sessionToken);seller=d.seller;$('setupMsg').textContent='Saqlandi!';$('setupMsg').className='auth-msg ok';await enterApp()}catch(e){$('setupMsg').textContent=e.message;$('setupMsg').className='auth-msg err'}finally{btn.disabled=false}};
+$('loginBtn').onclick=async()=>{const btn=$('loginBtn');btn.disabled=true;$('loginMsg').textContent='';$('loginMsg').className='auth-msg';try{const r=await fetch('/api/seller/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({login:$('loginUser').value.trim(),password:$('loginPass').value})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Xato');sessionToken=d.token;tokenStore.setItem(TOKEN_KEY,sessionToken);seller=d.seller;await enterApp()}catch(e){$('loginMsg').textContent=e.message;$('loginMsg').className='auth-msg err'}finally{btn.disabled=false}};
+$('setupBtn').onclick=async()=>{const btn=$('setupBtn');btn.disabled=true;$('setupMsg').textContent='';$('setupMsg').className='auth-msg';try{if(tgUserId==='guest')throw new Error('Telegram Mini App orqali kiring, keyin login yarating.');const chk=await fetch('/api/seller/my-application?userId='+encodeURIComponent(tgUserId),{cache:'no-store'});const info=await chk.json();if(!info.isSeller)throw new Error('Hali tasdiqlanmagansiz. Admin tasdiqlashini kuting.');if(info.seller&&info.seller.login)throw new Error('Sizda allaqachon login bor. Kirish sahifasidan foydalaning.');const r=await fetch('/api/seller/set-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:tgUserId,login:$('setupLogin').value.trim(),password:$('setupPass').value,password2:$('setupPass2').value})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Xato');sessionToken=d.token;tokenStore.setItem(TOKEN_KEY,sessionToken);seller=d.seller;$('setupMsg').textContent='Saqlandi!';$('setupMsg').className='auth-msg ok';await enterApp()}catch(e){$('setupMsg').textContent=e.message;$('setupMsg').className='auth-msg err'}finally{btn.disabled=false}};
 $('chgPassBtn').onclick=async()=>{$('chgMsg').textContent='';try{const r=await fetch('/api/seller/change-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:seller.userId,token:sessionToken,oldPassword:$('chgOld').value,password:$('chgNew').value,password2:$('chgNew2').value})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Xato');$('chgMsg').textContent='Parol yangilandi';$('chgMsg').style.color='#2a7a20';$('chgOld').value=$('chgNew').value=$('chgNew2').value=''}catch(e){$('chgMsg').textContent=e.message;$('chgMsg').style.color='#b4232e'}};
-$('btnLogout').onclick=()=>{localStorage.removeItem(TOKEN_KEY);sessionToken='';seller=null;showAuth('login')};
-function openProductForm(p){if(seller&&seller.status==='frozen'&&!p){alert('Hisob muzlatilgan');return}$('pmTitle').textContent=p?'Tahrirlash':'Yangi mahsulot';$('pmId').value=p?.id||'';$('pmName').value=p?.name||'';$('pmCategory').value=p?.category||p?.cat||'';$('pmPrice').value=p?.price??'';$('pmOldPrice').value=p?.oldPrice??'';$('pmImage').value=p?.image||'';$('pmImages').value=Array.isArray(p?.images)?p.images.join(', '):'';$('pmDesc').value=p?.description||'';$('pmColors').value=Array.isArray(p?.colors)?p.colors.join(', '):'';$('pmSizes').value=Array.isArray(p?.sizes)?p.sizes.join(', '):'';$('pmStock').value=p?.stock??'';$('pmStatus').textContent='';$('pmImageFile').value='';$('productModal').classList.add('open')}
+$('btnLogout').onclick=()=>{tokenStore.removeItem(TOKEN_KEY);sessionToken='';seller=null;showAuth('login')};
+function openProductForm(p){if(seller&&seller.status==='frozen'&&!p){alert('Hisob muzlatilgan');return}$('pmTitle').textContent=p?'Tahrirlash':'Yangi mahsulot';$('pmId').value=p?.id||'';$('pmName').value=p?.name||'';$('pmCategory').value=p?.category||p?.cat||'Boshqa';$('pmPrice').value=p?.price??'';$('pmOldPrice').value=p?.oldPrice??'';$('pmImage').value=p?.image||'';$('pmImages').value=Array.isArray(p?.images)?p.images.join(', '):'';$('pmDesc').value=p?.description||'';$('pmColors').value=Array.isArray(p?.colors)?p.colors.join(', '):'';
+  if($('pmColorImages')){const ci=p?.colorImages;if(ci&&typeof ci==='object'&&Array.isArray(p?.colors))$('pmColorImages').value=p.colors.map(c=>ci[c]||'').join(', ');else $('pmColorImages').value=''}$('pmSizes').value=Array.isArray(p?.sizes)?p.sizes.join(', '):'';$('pmStock').value=p?.stock??'';$('pmStatus').textContent='';$('pmImageFile').value='';$('productModal').classList.add('open')}
 $('pmClose').onclick=()=>$('productModal').classList.remove('open');$('btnAddProduct').onclick=()=>openProductForm(null);
 function fileToDataUrl(file){return new Promise((resolve,reject)=>{if(!file)return resolve('');if(file.size>1.8*1024*1024)return reject(new Error('Rasm 1.8 MB dan kichik'));const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(new Error('Rasm o‘qilmadi'));r.readAsDataURL(file)})}
-$('pmSave').onclick=async()=>{const btn=$('pmSave');btn.disabled=true;$('pmStatus').textContent='Saqlanmoqda...';try{let image=$('pmImage').value.trim();const file=$('pmImageFile').files?.[0];if(file)image=await fileToDataUrl(file);const body={userId:seller.userId,id:$('pmId').value||undefined,name:$('pmName').value.trim(),category:$('pmCategory').value.trim()||'Boshqa',price:Number($('pmPrice').value),oldPrice:$('pmOldPrice').value!==''?Number($('pmOldPrice').value):null,image,images:$('pmImages').value.split(',').map(x=>x.trim()).filter(Boolean),description:$('pmDesc').value.trim(),colors:$('pmColors').value.split(',').map(x=>x.trim()).filter(Boolean),sizes:$('pmSizes').value.split(',').map(x=>x.trim()).filter(Boolean),stock:$('pmStock').value!==''?Number($('pmStock').value):null};const r=await fetch('/api/seller/products',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw new Error(d.error||'Xatolik');$('productModal').classList.remove('open');await loadProducts();await loadSellerData()}catch(e){$('pmStatus').textContent=e.message;$('pmStatus').style.color='#b4232e'}finally{btn.disabled=false}};
+$('pmSave').onclick=async()=>{const btn=$('pmSave');btn.disabled=true;$('pmStatus').textContent='Saqlanmoqda...';try{let image=$('pmImage').value.trim();const file=$('pmImageFile').files?.[0];if(file)image=await fileToDataUrl(file);const body={userId:seller.userId,id:$('pmId').value||undefined,name:$('pmName').value.trim(),category:$('pmCategory').value.trim()||'Boshqa',price:Number($('pmPrice').value),oldPrice:$('pmOldPrice').value!==''?Number($('pmOldPrice').value):null,image,images:$('pmImages').value.split(',').map(x=>x.trim()).filter(Boolean),description:$('pmDesc').value.trim(),colors:$('pmColors').value.split(',').map(x=>x.trim()).filter(Boolean),
+      colorImages:(()=>{const cols=$('pmColors').value.split(',').map(x=>x.trim()).filter(Boolean);const urls=($('pmColorImages')?$('pmColorImages').value:'').split(',').map(x=>x.trim()).filter(Boolean);const map={};cols.forEach((c,i)=>{if(urls[i])map[c]=urls[i]});return Object.keys(map).length?map:undefined})(),sizes:$('pmSizes').value.split(',').map(x=>x.trim()).filter(Boolean),stock:$('pmStock').value!==''?Number($('pmStock').value):null};const r=await fetch('/api/seller/products',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw new Error(d.error||'Xatolik');$('productModal').classList.remove('open');await loadProducts();await loadSellerData()}catch(e){$('pmStatus').textContent=e.message;$('pmStatus').style.color='#b4232e'}finally{btn.disabled=false}};
 async function deleteProduct(id){if(!confirm('O‘chirilsinmi?'))return;try{const r=await fetch('/api/seller/products/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:seller.userId,productId:id})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Xato');await loadProducts();await loadSellerData()}catch(e){alert(e.message)}}
 (async function boot(){
   if(tgUserId!=='guest'){try{const r=await fetch('/api/seller/my-application?userId='+encodeURIComponent(tgUserId),{cache:'no-store'});const d=await r.json();if(d.isSeller&&d.seller&&!d.seller.login)showAuth('setup')}catch(e){}}
-  if(sessionToken){try{await enterApp();return}catch(e){localStorage.removeItem(TOKEN_KEY);sessionToken=''}}
+  if(sessionToken){try{await enterApp();return}catch(e){tokenStore.removeItem(TOKEN_KEY);sessionToken=''}}
 })();
 </script>
 </body>

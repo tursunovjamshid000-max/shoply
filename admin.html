@@ -175,6 +175,19 @@ th{color:var(--muted);font-size:11px}
   #sellers table{min-width:720px}
 }
 
+
+#sellers{max-width:100%;overflow-x:hidden}
+#sellers .panel{max-width:100%;overflow:hidden}
+#sellersCards,#appsCards{max-width:100%;width:100%;box-sizing:border-box}
+.seller-card{max-width:100%;min-width:0;overflow:hidden}
+.seller-card h3,.seller-card .sub{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+#sellerFullSheet{max-width:min(920px,100vw)!important;width:100%!important}
+#sellerFullModal{overflow:auto}
+@media(max-width:700px){
+  #sellersCards,#appsCards{grid-template-columns:1fr!important}
+  #sellerFullSheet{border-radius:0}
+}
+
 </style>
 
 <style id="shoply-final-layout-fix">

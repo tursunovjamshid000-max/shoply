@@ -428,6 +428,7 @@ http.createServer(async (req, res) => {
         email: sanitizeStr(b.email, 120),
         telegramUsername: sanitizeStr(b.telegramUsername, 80),
         photo: typeof b.photo === 'string' ? b.photo.slice(0, 500000) : '',
+        logo: typeof b.logo === 'string' ? b.logo.slice(0, 500000) : '',
         extra: sanitizeStr(b.extra, 1000),
         agreedCommission: true,
         status: 'pending',
@@ -518,6 +519,7 @@ http.createServer(async (req, res) => {
           email: app.email,
           telegramUsername: app.telegramUsername,
           photo: app.photo || '',
+          logo: app.logo || app.photo || '',
           status: 'active',
           debt: 0,
           totalSales: 0,
@@ -538,6 +540,7 @@ http.createServer(async (req, res) => {
         seller.email = app.email;
         seller.telegramUsername = app.telegramUsername;
         if (app.photo) seller.photo = app.photo;
+        if (app.logo) seller.logo = app.logo;
         seller.approvedAt = nowISO();
         seller.freezeReason = '';
       }
@@ -631,6 +634,9 @@ http.createServer(async (req, res) => {
         images: Array.isArray(b.images) ? b.images.slice(0, 5).map(x => String(x).slice(0, 800000)) : [],
         sizes: Array.isArray(b.sizes) ? b.sizes.map(x => sanitizeStr(x, 40)).filter(Boolean) : [],
         colors: Array.isArray(b.colors) ? b.colors.map(x => sanitizeStr(x, 40)).filter(Boolean) : [],
+        colorImages: (b.colorImages && typeof b.colorImages === 'object' && !Array.isArray(b.colorImages))
+          ? Object.fromEntries(Object.entries(b.colorImages).slice(0, 12).map(([k, v]) => [sanitizeStr(k, 40), String(v).slice(0, 800000)]))
+          : undefined,
         description: sanitizeStr(b.description, 2000),
         badge: sanitizeStr(b.badge, 40),
         stock: b.stock != null ? Number(b.stock) : null,
@@ -970,6 +976,37 @@ http.createServer(async (req, res) => {
       all[userId] = list.map(m => (msgId && String(m.id) !== msgId ? m : { ...m, read: true }));
       await putOne('shoply_seller_messages_v1', all);
       return send(res, 200, { ok: true });
+    }
+
+
+    if (p === '/api/seller/profile' && req.method === 'POST') {
+      const b = await readBody(req);
+      const userId = sanitizeStr(b.userId, 80);
+      if (!userId) return send(res, 400, { error: 'userId kerak' });
+      const sellers = await getSellers();
+      const seller = findSeller(sellers, userId);
+      if (!seller) return send(res, 403, { error: 'Tadbirkor emassiz' });
+      if (b.storeName) seller.storeName = sanitizeStr(b.storeName, 100);
+      if (b.phone) seller.phone = sanitizeStr(b.phone, 40);
+      if (b.email !== undefined) seller.email = sanitizeStr(b.email, 120);
+      if (b.telegramUsername !== undefined) seller.telegramUsername = sanitizeStr(b.telegramUsername, 80);
+      if (typeof b.logo === 'string') seller.logo = b.logo.slice(0, 500000);
+      if (typeof b.photo === 'string') seller.photo = b.photo.slice(0, 500000);
+      seller.lastActiveAt = nowISO();
+      await putSellers(sellers);
+      // update storeName on products
+      if (b.storeName) {
+        const products = await getProducts();
+        let changed = false;
+        for (const pr of products) {
+          if (String(pr.sellerId) === String(userId)) {
+            pr.storeName = seller.storeName;
+            changed = true;
+          }
+        }
+        if (changed) await putProducts(products);
+      }
+      return send(res, 200, { ok: true, seller: { userId: seller.userId, storeName: seller.storeName, logo: seller.logo || '', photo: seller.photo || '' } });
     }
 
     // Reviews (unchanged)
