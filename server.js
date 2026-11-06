@@ -266,16 +266,23 @@ function makeSessionToken() {
 async function requireSellerSession(req, bodyOrQuery) {
   const token = sanitizeStr(
     (bodyOrQuery && (bodyOrQuery.token || bodyOrQuery.sessionToken)) ||
+    (bodyOrQuery && bodyOrQuery.get && bodyOrQuery.get('token')) ||
     req.headers['x-seller-token'] ||
     '',
     80
   );
   if (!token) return null;
   const sellers = await getSellers();
-  const seller = sellers.find(s => s.sessionToken && s.sessionToken === token);
-  if (!seller) return null;
+  // Token must match exactly ONE seller — identity comes only from token
+  const matches = sellers.filter(s => s.sessionToken && s.sessionToken === token);
+  if (matches.length !== 1) return null;
+  const seller = matches[0];
   ensureSellerStats(seller);
   return seller;
+}
+
+function sellerAuthError(res) {
+  return send(res, 401, { error: 'Sessiya yaroqsiz. Login va parol bilan qayta kiring.' });
 }
 
 function sellerOfficialNick(seller) {
@@ -778,28 +785,23 @@ http.createServer(async (req, res) => {
 
     // Seller products: safe merge
     if (p === '/api/seller/products' && req.method === 'GET') {
-      const userId = sanitizeStr(u.searchParams.get('userId'), 80);
-      if (!userId) return send(res, 400, { error: 'userId kerak' });
+      const token = sanitizeStr(u.searchParams.get('token') || req.headers['x-seller-token'], 80);
+      const seller = token ? await requireSellerSession(req, { token }) : null;
+      if (!seller) return sellerAuthError(res);
+      const userId = String(seller.userId);
       const products = await getProducts();
-      const mine = products.filter(pr => String(pr.sellerId) === String(userId));
+      const mine = products.filter(pr => pr && String(pr.sellerId) === userId);
       return send(res, 200, mine);
     }
 
     if (p === '/api/seller/products' && req.method === 'POST') {
       const b = await readBody(req);
-      const userId = sanitizeStr(b.userId, 80);
-      if (!userId || userId === 'guest') return send(res, 400, { error: 'userId kerak' });
-
+      let seller = await requireSellerSession(req, b);
+      if (!seller) return sellerAuthError(res);
+      const userId = String(seller.userId);
       const sellers = await getSellers();
-      let seller = findSeller(sellers, userId);
-      if (!seller) return send(res, 403, { error: 'Siz tasdiqlangan tadbirkor emassiz' });
-      // Parol o‘rnatilgan bo‘lsa — session token majburiy
-      if (seller.passwordHash) {
-        const token = sanitizeStr(b.token || req.headers['x-seller-token'], 80);
-        if (!token || seller.sessionToken !== token) {
-          return send(res, 401, { error: 'Sessiya muddati tugagan. Qayta login qiling.' });
-        }
-      }
+      // re-bind to mutable list entry
+      seller = findSeller(sellers, userId) || seller;
       if (seller.status === 'frozen') {
         return send(res, 403, {
           error: 'Hisobingiz muzlatilgan. Yangi mahsulot qo‘sha olmaysiz. Qarzingizni to‘lang yoki admin bilan bog‘laning.',
@@ -861,19 +863,14 @@ http.createServer(async (req, res) => {
 
     if (p === '/api/seller/products/delete' && req.method === 'POST') {
       const b = await readBody(req);
-      const userId = sanitizeStr(b.userId, 80);
       const productId = sanitizeStr(b.productId, 80);
-      if (!userId || !productId) return send(res, 400, { error: 'userId va productId kerak' });
+      const sellerAuth = await requireSellerSession(req, b);
+      if (!sellerAuth) return sellerAuthError(res);
+      const userId = String(sellerAuth.userId);
+      if (!productId) return send(res, 400, { error: 'productId kerak' });
 
       const sellers = await getSellers();
-      const seller = findSeller(sellers, userId);
-      if (!seller) return send(res, 403, { error: 'Tadbirkor emassiz' });
-      if (seller.passwordHash) {
-        const token = sanitizeStr(b.token || req.headers['x-seller-token'], 80);
-        if (!token || seller.sessionToken !== token) {
-          return send(res, 401, { error: 'Sessiya muddati tugagan. Qayta login qiling.' });
-        }
-      }
+      const seller = findSeller(sellers, userId) || sellerAuth;
       // Allow delete even if frozen (cleanup)
 
       let products = await getProducts();
@@ -893,10 +890,11 @@ http.createServer(async (req, res) => {
 
     // Seller orders (only own items)
     if (p === '/api/seller/orders' && req.method === 'GET') {
-      const userId = sanitizeStr(u.searchParams.get('userId'), 80);
-      if (!userId) return send(res, 400, { error: 'userId kerak' });
+      const token = sanitizeStr(u.searchParams.get('token') || req.headers['x-seller-token'], 80);
+      const sellerAuth = token ? await requireSellerSession(req, { token }) : null;
+      if (!sellerAuth) return sellerAuthError(res);
+      const userId = String(sellerAuth.userId);
       const sellers = await getSellers();
-      if (!findSeller(sellers, userId)) return send(res, 403, { error: 'Tadbirkor emassiz' });
 
       const ordersX = await getOne('shoply_orders_v1');
       const allOrders = Array.isArray(ordersX.value) ? ordersX.value : [];
@@ -927,15 +925,16 @@ http.createServer(async (req, res) => {
     // Optional: allow seller to mark "Jarayonda" etc on the order if they are the only seller — skip for safety.
     if (p === '/api/seller/orders/status' && req.method === 'POST') {
       const b = await readBody(req);
-      const userId = sanitizeStr(b.userId, 80);
+      const sellerAuth = await requireSellerSession(req, b);
+      if (!sellerAuth) return sellerAuthError(res);
+      const userId = String(sellerAuth.userId);
       const orderId = sanitizeStr(b.orderId, 80);
       const status = sanitizeStr(b.status, 60);
       const allowed = ['Yangi', 'Jarayonda', 'Yetkazilmoqda', 'Yetkazildi', 'Bekor qilindi'];
-      if (!userId || !orderId || !allowed.includes(status)) {
+      if (!orderId || !allowed.includes(status)) {
         return send(res, 400, { error: 'Noto‘g‘ri parametrlar' });
       }
       const sellers = await getSellers();
-      if (!findSeller(sellers, userId)) return send(res, 403, { error: 'Tadbirkor emassiz' });
 
       // Only allow if order contains this seller's items
       let touched = false;
@@ -965,8 +964,10 @@ http.createServer(async (req, res) => {
 
     // Commission history for seller
     if (p === '/api/seller/commissions' && req.method === 'GET') {
-      const userId = sanitizeStr(u.searchParams.get('userId'), 80);
-      if (!userId) return send(res, 400, { error: 'userId kerak' });
+      const token = sanitizeStr(u.searchParams.get('token') || req.headers['x-seller-token'], 80);
+      const sellerAuth = token ? await requireSellerSession(req, { token }) : null;
+      if (!sellerAuth) return sellerAuthError(res);
+      const userId = String(sellerAuth.userId);
       const log = await getCommissionLog();
       const mine = log.filter(l => String(l.sellerId) === String(userId));
       return send(res, 200, mine);
@@ -1008,6 +1009,9 @@ http.createServer(async (req, res) => {
       // clear any plain leftovers
       delete seller.password;
       const token = makeSessionToken();
+      for (const o of sellers) {
+        if (o !== seller && o.sessionToken === token) o.sessionToken = '';
+      }
       seller.sessionToken = token;
       seller.sessionAt = nowISO();
       await putSellers(sellers);
@@ -1041,6 +1045,10 @@ http.createServer(async (req, res) => {
         return send(res, 401, { error: 'Login yoki parol noto‘g‘ri' });
       }
       const token = makeSessionToken();
+      // Boshqa akkauntlar bilan token to‘qnashuvini oldini olish
+      for (const o of sellers) {
+        if (o !== seller && o.sessionToken === token) o.sessionToken = '';
+      }
       seller.sessionToken = token;
       seller.sessionAt = nowISO();
       seller.lastActiveAt = nowISO();
@@ -1049,7 +1057,7 @@ http.createServer(async (req, res) => {
         ok: true,
         token,
         seller: {
-          userId: seller.userId,
+          userId: String(seller.userId),
           login: seller.login,
           storeName: seller.storeName,
           fullName: seller.fullName,
@@ -1063,18 +1071,10 @@ http.createServer(async (req, res) => {
 
     if (p === '/api/seller/session' && req.method === 'GET') {
       const token = sanitizeStr(u.searchParams.get('token') || req.headers['x-seller-token'], 80);
-      const userId = sanitizeStr(u.searchParams.get('userId'), 80);
-      if (!token && !userId) return send(res, 400, { error: 'token yoki userId kerak' });
+      if (!token) return send(res, 401, { error: 'Token kerak. Login va parol bilan kiring.' });
       const sellers = await getSellers();
-      let seller = null;
-      if (token) seller = sellers.find(s => s.sessionToken && s.sessionToken === token);
-      // Agar parol o‘rnatilgan bo‘lsa — faqat token bilan kirish mumkin (userId bilan bypass yo‘q)
-      if (!seller && userId) {
-        const byUser = findSeller(sellers, userId);
-        if (byUser && !byUser.passwordHash) {
-          seller = byUser; // faqat hali login yaratmaganlar uchun
-        }
-      }
+      const matches = sellers.filter(s => s.sessionToken && s.sessionToken === token);
+      const seller = matches.length === 1 ? matches[0] : null;
       if (!seller) return send(res, 401, { error: 'Sessiya topilmadi. Login va parol bilan kiring.' });
       ensureSellerStats(seller);
       const products = await getProducts();
@@ -1157,8 +1157,10 @@ http.createServer(async (req, res) => {
     }
 
     if (p === '/api/seller/messages' && req.method === 'GET') {
-      const userId = sanitizeStr(u.searchParams.get('userId'), 80);
-      if (!userId) return send(res, 400, { error: 'userId kerak' });
+      const token = sanitizeStr(u.searchParams.get('token') || req.headers['x-seller-token'], 80);
+      const sellerAuth = token ? await requireSellerSession(req, { token }) : null;
+      if (!sellerAuth) return sellerAuthError(res);
+      const userId = String(sellerAuth.userId);
       const item = await getOne('shoply_seller_messages_v1');
       const all = item.value && typeof item.value === 'object' && !Array.isArray(item.value) ? item.value : {};
       const list = Array.isArray(all[userId]) ? all[userId] : [];
@@ -1268,11 +1270,11 @@ http.createServer(async (req, res) => {
 
     if (p === '/api/seller/profile' && req.method === 'POST') {
       const b = await readBody(req);
-      const userId = sanitizeStr(b.userId, 80);
-      if (!userId) return send(res, 400, { error: 'userId kerak' });
+      let seller = await requireSellerSession(req, b);
+      if (!seller) return sellerAuthError(res);
+      const userId = String(seller.userId);
       const sellers = await getSellers();
-      const seller = findSeller(sellers, userId);
-      if (!seller) return send(res, 403, { error: 'Tadbirkor emassiz' });
+      seller = findSeller(sellers, userId) || seller;
       if (b.storeName) seller.storeName = sanitizeStr(b.storeName, 100);
       if (b.phone) seller.phone = sanitizeStr(b.phone, 40);
       if (b.email !== undefined) seller.email = sanitizeStr(b.email, 120);
@@ -1299,19 +1301,13 @@ http.createServer(async (req, res) => {
 
     if (p === '/api/seller/orders/confirm' && req.method === 'POST') {
       const b = await readBody(req);
-      const userId = sanitizeStr(b.userId, 80);
+      const sellerAuth = await requireSellerSession(req, b);
+      if (!sellerAuth) return sellerAuthError(res);
+      const userId = String(sellerAuth.userId);
       const orderId = sanitizeStr(b.orderId, 80);
       const confirm = b.confirm === true || b.confirm === 'true' || b.confirm === 'yes';
-      if (!userId || !orderId) return send(res, 400, { error: 'userId va orderId kerak' });
+      if (!orderId) return send(res, 400, { error: 'orderId kerak' });
       const sellers = await getSellers();
-      const sellerAuth = findSeller(sellers, userId);
-      if (!sellerAuth) return send(res, 403, { error: 'Tadbirkor emassiz' });
-      if (sellerAuth.passwordHash) {
-        const token = sanitizeStr(b.token || req.headers['x-seller-token'], 80);
-        if (!token || sellerAuth.sessionToken !== token) {
-          return send(res, 401, { error: 'Sessiya muddati tugagan. Qayta login qiling.' });
-        }
-      }
       let found = false;
       let orderRef = null;
       await updateOrders(list => list.map(o => {

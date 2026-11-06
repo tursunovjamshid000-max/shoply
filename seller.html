@@ -402,14 +402,16 @@ function renderSettings(){
   };
 }
 async function loadSellerData(){
-  const q=sessionToken?('token='+encodeURIComponent(sessionToken)):('userId='+encodeURIComponent(seller?.userId||tgUserId));
-  const r=await fetch('/api/seller/session?'+q,{cache:'no-store'});
-  if(!r.ok)throw new Error('Sessiya yaroqsiz');
-  seller=await r.json();fillSide();renderSettings();
+  if(!sessionToken)throw new Error('Login qiling');
+  const r=await fetch('/api/seller/session?token='+encodeURIComponent(sessionToken),{cache:'no-store'});
+  if(!r.ok){tokenStore.removeItem(TOKEN_KEY);sessionToken='';throw new Error('Sessiya yaroqsiz. Qayta login qiling.');}
+  seller=await r.json();
+  if(!seller||!seller.userId)throw new Error('Tadbirkor topilmadi');
+  fillSide();renderSettings();
 }
-async function loadProducts(){const r=await fetch('/api/seller/products?userId='+encodeURIComponent(seller.userId),{cache:'no-store'});myProducts=r.ok?await r.json():[];renderProducts()}
-async function loadOrders(){const r=await fetch('/api/seller/orders?userId='+encodeURIComponent(seller.userId),{cache:'no-store'});myOrders=r.ok?await r.json():[];renderOrders();renderHome()}
-async function loadCommissions(){const r=await fetch('/api/seller/commissions?userId='+encodeURIComponent(seller.userId),{cache:'no-store'});commissions=r.ok?await r.json():[];renderDebt()}
+async function loadProducts(){const r=await fetch('/api/seller/products?token='+encodeURIComponent(sessionToken),{cache:'no-store'});if(r.status===401){showAuth('login');return}myProducts=r.ok?await r.json():[];if(!Array.isArray(myProducts))myProducts=[];renderProducts()}
+async function loadOrders(){const r=await fetch('/api/seller/orders?token='+encodeURIComponent(sessionToken),{cache:'no-store'});if(r.status===401){showAuth('login');return}myOrders=r.ok?await r.json():[];if(!Array.isArray(myOrders))myOrders=[];renderOrders();renderHome()}
+async function loadCommissions(){const r=await fetch('/api/seller/commissions?token='+encodeURIComponent(sessionToken),{cache:'no-store'});if(r.status===401){showAuth('login');return}commissions=r.ok?await r.json():[];if(!Array.isArray(commissions))commissions=[];renderDebt()}
 function renderHome(){
   if(!seller)return;
   $('stProducts').textContent=myProducts.length;
@@ -456,7 +458,7 @@ function renderOrders(){
     sel.onchange=async()=>{
       sel.disabled=true;
       try{
-        const r=await fetch('/api/seller/orders/status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:seller.userId,orderId:sel.dataset.oid,status:sel.value})});
+        const r=await fetch('/api/seller/orders/status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:seller.userId,orderId:sel.dataset.oid,status:sel.value,token:sessionToken})});
         const d=await r.json();if(!r.ok)throw new Error(d.error||'Xato');
         await loadOrders();await loadSellerData();await loadCommissions();
       }catch(e){alert(e.message||'Xatolik')}
@@ -540,7 +542,7 @@ $('confirmOverlay').addEventListener('click',e=>{if(e.target===$('confirmOverlay
 
 async function loadMessages(){
   try{
-    const r=await fetch('/api/seller/messages?userId='+encodeURIComponent(seller.userId),{cache:'no-store'});
+    const r=await fetch('/api/seller/messages?token='+encodeURIComponent(sessionToken),{cache:'no-store'});
     const list=r.ok?await r.json():[];
     const box=$('messagesList');
     const pending=list.find(m=>m.requiresAction&&m.type==='confirm_required'&&m.orderId);
@@ -587,8 +589,8 @@ if($('markAllRead'))$('markAllRead').onclick=async()=>{
 
 
 async function enterApp(){showApp();await loadSellerData();await Promise.all([loadProducts(),loadOrders(),loadCommissions()]);await loadReviews();await loadMessages()}
-$('loginBtn').onclick=async()=>{const btn=$('loginBtn');btn.disabled=true;$('loginMsg').textContent='';$('loginMsg').className='auth-msg';try{const r=await fetch('/api/seller/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({login:$('loginUser').value.trim(),password:$('loginPass').value})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Xato');sessionToken=d.token;tokenStore.setItem(TOKEN_KEY,sessionToken);seller=d.seller;await enterApp()}catch(e){$('loginMsg').textContent=e.message;$('loginMsg').className='auth-msg err'}finally{btn.disabled=false}};
-$('setupBtn').onclick=async()=>{const btn=$('setupBtn');btn.disabled=true;$('setupMsg').textContent='';$('setupMsg').className='auth-msg';try{if(tgUserId==='guest')throw new Error('Telegram Mini App orqali kiring, keyin login yarating.');const chk=await fetch('/api/seller/my-application?userId='+encodeURIComponent(tgUserId),{cache:'no-store'});const info=await chk.json();if(!info.isSeller)throw new Error('Hali tasdiqlanmagansiz. Admin tasdiqlashini kuting.');if(info.seller&&info.seller.login)throw new Error('Sizda allaqachon login bor. Kirish sahifasidan foydalaning.');const r=await fetch('/api/seller/set-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:tgUserId,login:$('setupLogin').value.trim(),password:$('setupPass').value,password2:$('setupPass2').value})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Xato');sessionToken=d.token;tokenStore.setItem(TOKEN_KEY,sessionToken);seller=d.seller;$('setupMsg').textContent='Saqlandi!';$('setupMsg').className='auth-msg ok';await enterApp()}catch(e){$('setupMsg').textContent=e.message;$('setupMsg').className='auth-msg err'}finally{btn.disabled=false}};
+$('loginBtn').onclick=async()=>{const btn=$('loginBtn');btn.disabled=true;$('loginMsg').textContent='';$('loginMsg').className='auth-msg';try{const r=await fetch('/api/seller/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({login:$('loginUser').value.trim(),password:$('loginPass').value})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Xato');sessionToken=d.token;tokenStore.setItem(TOKEN_KEY,sessionToken);seller=d.seller||{};seller.userId=String(seller.userId||'');myProducts=[];myOrders=[];commissions=[];await enterApp()}catch(e){$('loginMsg').textContent=e.message;$('loginMsg').className='auth-msg err'}finally{btn.disabled=false}};
+$('setupBtn').onclick=async()=>{const btn=$('setupBtn');btn.disabled=true;$('setupMsg').textContent='';$('setupMsg').className='auth-msg';try{if(tgUserId==='guest')throw new Error('Telegram Mini App orqali kiring, keyin login yarating.');const chk=await fetch('/api/seller/my-application?userId='+encodeURIComponent(tgUserId),{cache:'no-store'});const info=await chk.json();if(!info.isSeller)throw new Error('Hali tasdiqlanmagansiz. Admin tasdiqlashini kuting.');if(info.seller&&info.seller.login)throw new Error('Sizda allaqachon login bor. Kirish sahifasidan foydalaning.');const r=await fetch('/api/seller/set-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:tgUserId,login:$('setupLogin').value.trim(),password:$('setupPass').value,password2:$('setupPass2').value})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Xato');sessionToken=d.token;tokenStore.setItem(TOKEN_KEY,sessionToken);seller=d.seller||{};seller.userId=String(seller.userId||'');myProducts=[];myOrders=[];commissions=[];$('setupMsg').textContent='Saqlandi!';$('setupMsg').className='auth-msg ok';await enterApp()}catch(e){$('setupMsg').textContent=e.message;$('setupMsg').className='auth-msg err'}finally{btn.disabled=false}};
 $('chgPassBtn').onclick=async()=>{$('chgMsg').textContent='';try{const r=await fetch('/api/seller/change-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:seller.userId,token:sessionToken,oldPassword:$('chgOld').value,password:$('chgNew').value,password2:$('chgNew2').value})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Xato');$('chgMsg').textContent='Parol yangilandi';$('chgMsg').style.color='#2a7a20';$('chgOld').value=$('chgNew').value=$('chgNew2').value=''}catch(e){$('chgMsg').textContent=e.message;$('chgMsg').style.color='#b4232e'}};
 if($('btnLogoutTop'))$('btnLogoutTop').onclick=()=>{location.href='index.html'};
 function openProductForm(p){if(seller&&seller.status==='frozen'&&!p){alert('Hisob muzlatilgan');return}$('pmTitle').textContent=p?'Tahrirlash':'Yangi mahsulot';$('pmId').value=p?.id||'';$('pmName').value=p?.name||'';$('pmCategory').value=p?.category||p?.cat||'Boshqa';$('pmPrice').value=p?.price??'';$('pmOldPrice').value=p?.oldPrice??'';$('pmImage').value=p?.image||'';$('pmImages').value=Array.isArray(p?.images)?p.images.join(', '):'';$('pmDesc').value=p?.description||'';$('pmColors').value=Array.isArray(p?.colors)?p.colors.join(', '):'';
@@ -599,8 +601,18 @@ $('pmSave').onclick=async()=>{const btn=$('pmSave');btn.disabled=true;$('pmStatu
       colorImages:(()=>{const cols=$('pmColors').value.split(',').map(x=>x.trim()).filter(Boolean);const urls=($('pmColorImages')?$('pmColorImages').value:'').split(',').map(x=>x.trim()).filter(Boolean);const map={};cols.forEach((c,i)=>{if(urls[i])map[c]=urls[i]});return Object.keys(map).length?map:undefined})(),sizes:$('pmSizes').value.split(',').map(x=>x.trim()).filter(Boolean),stock:$('pmStock').value!==''?Number($('pmStock').value):null};const r=await fetch('/api/seller/products',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,token:sessionToken})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Xatolik');$('productModal').classList.remove('open');await loadProducts();await loadSellerData()}catch(e){$('pmStatus').textContent=e.message;$('pmStatus').style.color='#b4232e'}finally{btn.disabled=false}};
 async function deleteProduct(id){if(!confirm('O‘chirilsinmi?'))return;try{const r=await fetch('/api/seller/products/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:seller.userId,productId:id,token:sessionToken})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Xato');await loadProducts();await loadSellerData()}catch(e){alert(e.message)}}
 (async function boot(){
-  if(tgUserId!=='guest'){try{const r=await fetch('/api/seller/my-application?userId='+encodeURIComponent(tgUserId),{cache:'no-store'});const d=await r.json();if(d.isSeller&&d.seller&&!d.seller.login)showAuth('setup')}catch(e){}}
-  if(sessionToken){try{await enterApp();return}catch(e){tokenStore.removeItem(TOKEN_KEY);sessionToken=''}}
+  // Har safar login/parol so‘ralsin — avtomatik kirish o‘chirilgan
+  tokenStore.removeItem(TOKEN_KEY);
+  sessionToken='';
+  seller=null;
+  if(tgUserId!=='guest'){
+    try{
+      const r=await fetch('/api/seller/my-application?userId='+encodeURIComponent(tgUserId),{cache:'no-store'});
+      const d=await r.json();
+      if(d.isSeller&&d.seller&&!d.seller.login){showAuth('setup');return}
+    }catch(e){}
+  }
+  showAuth('login');
 })();
 </script>
 </body>
