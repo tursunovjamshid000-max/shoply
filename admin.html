@@ -261,6 +261,7 @@ html,body{max-width:100%;overflow-x:hidden!important}
   <button class="nav" data-section="reviews">⭐ Sharhlar</button>
   <button class="nav" data-section="banners">▧ Bannerlar</button>
   <button class="nav" data-section="sellers">🏪 Tadbirkorlar</button>
+  <button class="nav" data-section="xabarlar">💬 Xabarlar</button>
   <button class="nav" data-section="settings">⚙ Sozlamalar</button>
   <div class="bottom">
     <button class="secondary" id="backStore">↖ Do‘konga qaytish</button>
@@ -457,6 +458,11 @@ html,body{max-width:100%;overflow-x:hidden!important}
 .seller-card-foot{display:flex;gap:8px;margin-top:auto}
 #sellerFullModal.open{display:flex!important}
 </style>
+<section class="section" id="xabarlar">
+  <div class="toolbar"><h2>💬 Xabarlar</h2><button class="secondary" type="button" id="refreshXabarlar">Yangilash</button></div>
+  <p class="muted" style="margin:0 0 12px">Rasmiylashtirish va tadbirkor tasdiqlash/rad etish haqidagi xabarlar shu yerda.</p>
+  <div class="panel" id="xabarlarList"><p class="muted">Yuklanmoqda...</p></div>
+</section>
 <section class="section" id="settings">
   <div class="panel" style="margin-bottom:15px">
     <h2>Promo-kodlar va chegirmalar</h2>
@@ -935,10 +941,36 @@ async function loadAdminNotifications(){
   }catch(e){}
 }
 
+
+async function renderXabarlar(){
+  const box=$('xabarlarList');
+  if(!box)return;
+  box.innerHTML='<p class="muted">Yuklanmoqda...</p>';
+  try{
+    const r=await fetch('/api/admin/notifications',{cache:'no-store'});
+    const list=r.ok?await r.json():[];
+    if(!list.length){box.innerHTML='<p class="muted">Hali xabar yo‘q.</p>';return}
+    box.innerHTML=list.map(n=>{
+      const nick=(n.officialNicks&&n.officialNicks.length)?n.officialNicks.join(', '):(n.officialNick||((n.sellers&&n.sellers.length)?n.sellers.join(', '):''));
+      return `<article style="padding:14px 0;border-bottom:1px solid var(--line)">
+        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start">
+          <b style="font-size:15px">${esc(n.title||'Xabar')}</b>
+          <span class="muted" style="font-size:12px">${esc((n.createdAt||'').toString().slice(0,19).replace('T',' '))}</span>
+        </div>
+        <div style="font-size:13px;margin-top:6px;line-height:1.5">${esc(n.body||'')}</div>
+        ${nick?`<div style="margin-top:6px;font-size:12px;font-weight:700;color:#3d7a10">🏪 Tadbirkor: ${esc(nick)}</div>`:''}
+        ${n.orderId?`<div class="muted" style="margin-top:4px;font-size:12px">Buyurtma: ${esc(n.orderId)}</div>`:''}
+        <div style="margin-top:6px"><span class="badge">${esc(n.type||'info')}</span></div>
+      </article>`;
+    }).join('');
+  }catch(e){box.innerHTML='<p class="muted">Xabarlarni yuklab bo‘lmadi.</p>'}
+}
+if($('refreshXabarlar'))$('refreshXabarlar').onclick=renderXabarlar;
+
 function showSection(id){
  document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active',s.id===id));
  document.querySelectorAll('[data-section]').forEach(b=>b.classList.toggle('active',b.dataset.section===id));
- const names={dashboard:'Boshqaruv',products:'Mahsulotlar',cart:'Savat statistikasi',orders:'Buyurtmalar',reviews:'Sharhlar',banners:'Bannerlar',sellers:'Tadbirkorlar',settings:'Sozlamalar'};
+ const names={dashboard:'Boshqaruv',products:'Mahsulotlar',cart:'Savat statistikasi',orders:'Buyurtmalar',reviews:'Sharhlar',banners:'Bannerlar',sellers:'Tadbirkorlar',xabarlar:'Xabarlar',settings:'Sozlamalar'};
  $('pageTitle').textContent=names[id]||'Admin panel';
  $('headerAdd').classList.toggle('hidden',id!=='products');
  if(id==='dashboard'||id==='cart')renderCart();
@@ -946,6 +978,7 @@ function showSection(id){
  if(id==='banners')renderBanners();
  if(id==='orders')renderOrders();
  if(id==='reviews')renderReviews();
+ if(id==='xabarlar')renderXabarlar();
  if(id==='settings')loadProfile();
 }
 

@@ -9,7 +9,7 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const TABLE = 'shoply_data';
 const ROOT = __dirname;
 const COMMISSION_RATE = 0.03;
-const FREEZE_THRESHOLD = 30000;
+const FREEZE_THRESHOLD = 20000;
 
 const ALLOWED = new Set([
   'mono_store_products_v2', 'mono_store_settings_v2', 'mono_store_slides_v2',
@@ -266,6 +266,26 @@ function makeSessionToken() {
   return crypto.randomBytes(24).toString('hex');
 }
 
+/** Require valid seller session token. Returns seller or null. */
+async function requireSellerSession(req, bodyOrQuery) {
+  const token = sanitizeStr(
+    (bodyOrQuery && (bodyOrQuery.token || bodyOrQuery.sessionToken)) ||
+    req.headers['x-seller-token'] ||
+    '',
+    80
+  );
+  if (!token) return null;
+  const sellers = await getSellers();
+  const seller = sellers.find(s => s.sessionToken && s.sessionToken === token);
+  if (!seller) return null;
+  ensureSellerStats(seller);
+  return seller;
+}
+
+function sellerOfficialNick(seller) {
+  if (!seller) return '';
+  return String(seller.login || seller.telegramUsername || seller.storeName || seller.fullName || seller.userId || '').replace(/^@/, '');
+}
 
 async function applyCommissionForSeller(order, onlySellerId) {
   if (!order || !Array.isArray(order.items)) return { applied: false };
@@ -350,7 +370,19 @@ http.createServer(async (req, res) => {
     // Full state (unchanged + new keys)
     if ((p === '/api/state' || p === '/api/admin/state') && req.method === 'GET') {
       if (!SUPABASE_URL || !SUPABASE_KEY) return send(res, 503, { error: 'Supabase sozlanmagan' });
-      return send(res, 200, await getAll());
+      const data = await getAll();
+      // Public state: muzlatilgan tadbirkor mahsulotlarini vaqtincha yashirish
+      if (p === '/api/state' && Array.isArray(data.mono_store_products_v2)) {
+        const sellers = Array.isArray(data.shoply_sellers_v1) ? data.shoply_sellers_v1 : [];
+        const frozenIds = new Set(sellers.filter(s => s && s.status === 'frozen').map(s => String(s.userId)));
+        if (frozenIds.size) {
+          data.mono_store_products_v2 = data.mono_store_products_v2.filter(pr => {
+            if (!pr || !pr.sellerId) return true;
+            return !frozenIds.has(String(pr.sellerId));
+          });
+        }
+      }
+      return send(res, 200, data);
     }
 
     // Generic state key (unchanged)
@@ -446,31 +478,46 @@ http.createServer(async (req, res) => {
         sellerConfirmations: {}
       };
       await updateOrders(list => [order, ...list].slice(0, 10000));
-      // Admin notification
+      // Admin notification — aniq matn + tadbirkor rasmiy nikname
+      const sellerNicks = [];
+      for (const tg of targets) {
+        if (tg.type !== 'seller' || !tg.sellerId) continue;
+        const s = findSeller(sellers, tg.sellerId);
+        sellerNicks.push(sellerOfficialNick(s) || tg.storeName || tg.username || tg.sellerId);
+      }
+      const nickStr = sellerNicks.length ? sellerNicks.join(', ') : '—';
       await pushAdminNotification({
         type: 'order_formalized',
-        title: 'Yangi rasmiylashtirish',
-        body: `${sanitizeStr(b.name, 80)} (${sanitizeStr(b.phone, 40)}) buyurtma rasmiylashtirdi: ${order.id}`,
+        title: 'Rasmiylashtirish amalga oshirildi',
+        body: `Rasmiylashtirish amalga oshirildi. Mijoz: ${sanitizeStr(b.name, 80)} (${sanitizeStr(b.phone, 40)}). Buyurtma: ${order.id}. Tadbirkor(lar): ${nickStr}. Mahsulotlar: ${items2.map(i => i.name).join(', ')}. Jami: ${Number(b.total) || 0} so‘m.`,
         orderId: order.id,
         customerName: sanitizeStr(b.name, 80),
-        sellers: targets.filter(x => x.type === 'seller').map(x => x.storeName || x.username || x.sellerId)
+        sellers: sellerNicks,
+        officialNicks: sellerNicks
       });
-      // Notify each seller via messages inbox
+      // Notify each seller via messages inbox — confirm_required (overlay uchun)
       const msgItem = await getOne('shoply_seller_messages_v1');
       const allMsg = msgItem.value && typeof msgItem.value === 'object' && !Array.isArray(msgItem.value) ? msgItem.value : {};
       for (const tg of targets) {
         if (tg.type !== 'seller' || !tg.sellerId) continue;
+        const s = findSeller(sellers, tg.sellerId);
+        const nick = sellerOfficialNick(s);
         const list = Array.isArray(allMsg[tg.sellerId]) ? allMsg[tg.sellerId] : [];
         const names = tg.items.map(i => i.name).join(', ');
+        const saleSum = tg.items.reduce((a, i) => a + (Number(i.price) || 0) * (Number(i.quantity) || 1), 0);
+        const commissionHint = Math.round(saleSum * COMMISSION_RATE);
         list.unshift({
           id: `MSG-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-          title: 'Yangi rasmiylashtirish',
-          body: `Mijoz ${sanitizeStr(b.name, 80)} (${sanitizeStr(b.phone, 40)}) sizdan mahsulot rasmiylashtirdi: ${names}. Buyurtma: ${order.id}. Panelda tasdiqlang (Ha/Yo‘q).`,
-          type: 'order',
+          title: 'Rasmiylashtirish amalga oshirildi',
+          body: `Rasmiylashtirish amalga oshirildi. Mijoz ${sanitizeStr(b.name, 80)} (${sanitizeStr(b.phone, 40)}) sizning (${nick}) mahsulotlaringizni rasmiylashtirdi: ${names}. Buyurtma: ${order.id}. Taxminiy 3% komissiya: ${commissionHint} so‘m. Tasdiqlaysizmi? (Ha — 3% qarz yoziladi / Yo‘q)`,
+          type: 'confirm_required',
           orderId: order.id,
+          saleAmount: saleSum,
+          commissionAmount: commissionHint,
           from: 'system',
           createdAt: nowISO(),
-          read: false
+          read: false,
+          requiresAction: true
         });
         allMsg[tg.sellerId] = list.slice(0, 500);
       }
@@ -748,8 +795,15 @@ http.createServer(async (req, res) => {
       if (!userId || userId === 'guest') return send(res, 400, { error: 'userId kerak' });
 
       const sellers = await getSellers();
-      const seller = findSeller(sellers, userId);
+      let seller = findSeller(sellers, userId);
       if (!seller) return send(res, 403, { error: 'Siz tasdiqlangan tadbirkor emassiz' });
+      // Parol o‘rnatilgan bo‘lsa — session token majburiy
+      if (seller.passwordHash) {
+        const token = sanitizeStr(b.token || req.headers['x-seller-token'], 80);
+        if (!token || seller.sessionToken !== token) {
+          return send(res, 401, { error: 'Sessiya muddati tugagan. Qayta login qiling.' });
+        }
+      }
       if (seller.status === 'frozen') {
         return send(res, 403, {
           error: 'Hisobingiz muzlatilgan. Yangi mahsulot qo‘sha olmaysiz. Qarzingizni to‘lang yoki admin bilan bog‘laning.',
@@ -818,6 +872,12 @@ http.createServer(async (req, res) => {
       const sellers = await getSellers();
       const seller = findSeller(sellers, userId);
       if (!seller) return send(res, 403, { error: 'Tadbirkor emassiz' });
+      if (seller.passwordHash) {
+        const token = sanitizeStr(b.token || req.headers['x-seller-token'], 80);
+        if (!token || seller.sessionToken !== token) {
+          return send(res, 401, { error: 'Sessiya muddati tugagan. Qayta login qiling.' });
+        }
+      }
       // Allow delete even if frozen (cleanup)
 
       let products = await getProducts();
@@ -1012,8 +1072,14 @@ http.createServer(async (req, res) => {
       const sellers = await getSellers();
       let seller = null;
       if (token) seller = sellers.find(s => s.sessionToken && s.sessionToken === token);
-      if (!seller && userId) seller = findSeller(sellers, userId);
-      if (!seller) return send(res, 401, { error: 'Sessiya topilmadi' });
+      // Agar parol o‘rnatilgan bo‘lsa — faqat token bilan kirish mumkin (userId bilan bypass yo‘q)
+      if (!seller && userId) {
+        const byUser = findSeller(sellers, userId);
+        if (byUser && !byUser.passwordHash) {
+          seller = byUser; // faqat hali login yaratmaganlar uchun
+        }
+      }
+      if (!seller) return send(res, 401, { error: 'Sessiya topilmadi. Login va parol bilan kiring.' });
       ensureSellerStats(seller);
       const products = await getProducts();
       seller.productsCount = products.filter(pr => String(pr.sellerId) === String(seller.userId)).length;
@@ -1035,7 +1101,8 @@ http.createServer(async (req, res) => {
         productsCount: seller.productsCount,
         approvedAt: seller.approvedAt,
         lastActiveAt: seller.lastActiveAt,
-        freezeReason: seller.freezeReason || ''
+        freezeReason: seller.freezeReason || '',
+        officialNick: sellerOfficialNick(seller)
       });
     }
 
@@ -1159,7 +1226,14 @@ http.createServer(async (req, res) => {
       const confirm = b.confirm === true || b.confirm === 'true' || b.confirm === 'yes';
       if (!userId || !orderId) return send(res, 400, { error: 'userId va orderId kerak' });
       const sellers = await getSellers();
-      if (!findSeller(sellers, userId)) return send(res, 403, { error: 'Tadbirkor emassiz' });
+      const sellerAuth = findSeller(sellers, userId);
+      if (!sellerAuth) return send(res, 403, { error: 'Tadbirkor emassiz' });
+      if (sellerAuth.passwordHash) {
+        const token = sanitizeStr(b.token || req.headers['x-seller-token'], 80);
+        if (!token || sellerAuth.sessionToken !== token) {
+          return send(res, 401, { error: 'Sessiya muddati tugagan. Qayta login qiling.' });
+        }
+      }
       let found = false;
       let orderRef = null;
       await updateOrders(list => list.map(o => {
@@ -1180,20 +1254,61 @@ http.createServer(async (req, res) => {
       // If already decided before this request was applied... check log
       if (confirm) {
         const result = await applyCommissionForSeller(orderRef, userId);
+        const nick = sellerOfficialNick(sellerAuth);
         await pushAdminNotification({
           type: 'seller_confirmed',
           title: 'Tadbirkor buyurtmani tasdiqladi',
-          body: `Tadbirkor ${userId} buyurtma ${orderId} ni tasdiqladi. Komissiya: ${result.applied ? 'hisoblandi' : 'yo‘q yoki oldin hisoblangan'}`,
-          orderId
+          body: `Tadbirkor ${nick || userId} buyurtma ${orderId} ni tasdiqladi. Komissiya: ${result.applied ? 'hisoblandi' : 'yo‘q yoki oldin hisoblangan'}.`,
+          orderId,
+          officialNick: nick
         });
+        // Mark related confirm_required messages as handled
+        try {
+          const msgItem = await getOne('shoply_seller_messages_v1');
+          const allMsg = msgItem.value && typeof msgItem.value === 'object' && !Array.isArray(msgItem.value) ? msgItem.value : {};
+          const list = Array.isArray(allMsg[userId]) ? allMsg[userId] : [];
+          let changed = false;
+          for (const m of list) {
+            if (m.orderId === orderId && m.requiresAction) {
+              m.requiresAction = false;
+              m.read = true;
+              m.type = 'order_confirmed';
+              changed = true;
+            }
+          }
+          if (changed) {
+            allMsg[userId] = list;
+            await putOne('shoply_seller_messages_v1', allMsg);
+          }
+        } catch (e) {}
         return send(res, 200, { ok: true, confirmed: true, commission: result });
       }
+      const nickR = sellerOfficialNick(sellerAuth);
       await pushAdminNotification({
         type: 'seller_rejected',
         title: 'Tadbirkor buyurtmani rad etdi',
-        body: `Tadbirkor ${userId} buyurtma ${orderId} ni rad etdi (komissiya yozilmadi)`,
-        orderId
+        body: `Tadbirkor ${nickR || userId} buyurtma ${orderId} ni rad etdi (komissiya yozilmadi).`,
+        orderId,
+        officialNick: nickR
       });
+      try {
+        const msgItem = await getOne('shoply_seller_messages_v1');
+        const allMsg = msgItem.value && typeof msgItem.value === 'object' && !Array.isArray(msgItem.value) ? msgItem.value : {};
+        const list = Array.isArray(allMsg[userId]) ? allMsg[userId] : [];
+        let changed = false;
+        for (const m of list) {
+          if (m.orderId === orderId && m.requiresAction) {
+            m.requiresAction = false;
+            m.read = true;
+            m.type = 'order_rejected';
+            changed = true;
+          }
+        }
+        if (changed) {
+          allMsg[userId] = list;
+          await putOne('shoply_seller_messages_v1', allMsg);
+        }
+      } catch (e) {}
       return send(res, 200, { ok: true, confirmed: false });
     }
 

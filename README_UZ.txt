@@ -28,7 +28,7 @@ SHOPLY — TADBIRKORLIK (SELLER MARKETPLACE) MODULI
 
 === KOMISSIYA ===
 - Buyurtma statusi «Yetkazildi» bo‘lganda server 3% hisoblaydi
-- Qarz >= 30 000 so‘m → avtomatik muzlatish
+- Qarz >= 20 000 so‘m → avtomatik muzlatish (mahsulotlar vaqtincha yashiriladi)
 - Takroriy hisoblash oldini olish (commissionApplied + log)
 
 === XAVFSIZLIK ===

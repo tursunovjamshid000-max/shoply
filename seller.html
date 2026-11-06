@@ -86,6 +86,15 @@ td{padding:12px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
 .badge.frozen{background:#ffe8e8;color:#b4232e}.badge.frozen::before{background:#b4232e}
 .section{display:none}.section.active{display:block}
 .freeze-banner{background:linear-gradient(90deg,#fff4d6,#ffe8c8);border:1px solid #f0d78c;border-radius:14px;padding:14px 16px;margin-bottom:16px;font-size:13px;line-height:1.45}
+.confirm-overlay{display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,20,5,.72);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:18px}
+.confirm-overlay.open{display:flex}
+.confirm-card{width:min(420px,100%);background:#fff;border-radius:20px;padding:24px 20px;box-shadow:0 20px 50px rgba(0,0,0,.25);border:2px solid var(--accent)}
+.confirm-card h3{margin:0 0 10px;font-size:18px;font-weight:900}
+.confirm-card p{margin:0 0 16px;font-size:14px;line-height:1.5;color:#333}
+.confirm-actions{display:flex;gap:10px;flex-wrap:wrap}
+.confirm-actions button{flex:1;min-height:46px;border-radius:12px;font-weight:800;font-size:15px;border:none;cursor:pointer}
+.confirm-yes{background:var(--accent);color:#1a2e08}
+.confirm-no{background:#fee2e2;color:#b4232e}
 .scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:40;backdrop-filter:blur(2px)}
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:flex-end;justify-content:center;padding:0;backdrop-filter:blur(3px)}
 .modal-bg.open{display:flex}
@@ -175,6 +184,7 @@ td{padding:12px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
     <button class="nav" data-section="messages"><span class="ico">💬</span>Xabarlar</button>
     <button class="nav" data-section="settings"><span class="ico">⚙</span>Sozlamalar</button>
     <div class="side-bottom">
+      <a class="nav" href="index.html" style="text-decoration:none;color:#3d7a10"><span class="ico">🏠</span>Do‘konga qaytish</a>
       <button class="nav" id="btnLogout" style="color:#b4232e"><span class="ico">←</span>Chiqish</button>
       <div class="promo-card"><div class="big">🏪</div>SHOPLY<br>Do‘koningizni rivojlantiring!</div>
     </div>
@@ -304,6 +314,16 @@ td{padding:12px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
     <label class="label">Miqdor</label><input class="field" id="pmStock" type="number" min="0">
     <button class="btn-primary" id="pmSave" type="button">Saqlash</button>
     <p class="muted" id="pmStatus" style="margin-top:10px"></p>
+  </div>
+</div>
+<div class="confirm-overlay" id="confirmOverlay" role="dialog" aria-modal="true">
+  <div class="confirm-card">
+    <h3 id="confirmTitle">Rasmiylashtirish amalga oshirildi</h3>
+    <p id="confirmBody">Yuklanmoqda...</p>
+    <div class="confirm-actions">
+      <button type="button" class="confirm-yes" id="confirmYes">Ha — tasdiqlash</button>
+      <button type="button" class="confirm-no" id="confirmNo">Yo‘q</button>
+    </div>
   </div>
 </div>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -444,7 +464,7 @@ function renderOrders(){
       if(yes && !confirm('Tasdiqlaysizmi? 3% komissiya qarzingizga yoziladi.'))return;
       btn.disabled=true;
       try{
-        const r=await fetch('/api/seller/orders/confirm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:seller.userId,orderId:oid,confirm:yes})});
+        const r=await fetch('/api/seller/orders/confirm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:seller.userId,orderId:oid,confirm:yes,token:sessionToken})});
         const d=await r.json();if(!r.ok)throw new Error(d.error||'Xato');
         await loadOrders();await loadSellerData();await loadCommissions();await loadMessages();
       }catch(e){alert(e.message||'Xato')}
@@ -478,21 +498,58 @@ async function loadReviews(){
     </div>`).join('');
   }catch(e){$('reviewsList').innerHTML='<div class="empty">Sharhlar yuklanmadi</div>'}
 }
+let pendingConfirm=null;
+function showConfirmOverlay(msg){
+  pendingConfirm=msg;
+  $('confirmTitle').textContent=msg.title||'Rasmiylashtirish amalga oshirildi';
+  $('confirmBody').textContent=msg.body||'';
+  $('confirmOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function hideConfirmOverlay(){
+  pendingConfirm=null;
+  $('confirmOverlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+async function answerConfirm(yes){
+  if(!pendingConfirm||!seller)return;
+  const oid=pendingConfirm.orderId;
+  const btnY=$('confirmYes'),btnN=$('confirmNo');
+  btnY.disabled=btnN.disabled=true;
+  try{
+    const r=await fetch('/api/seller/orders/confirm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:seller.userId,orderId:oid,confirm:!!yes,token:sessionToken})});
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.error||'Xato');
+    hideConfirmOverlay();
+    await loadOrders();await loadSellerData();await loadCommissions();await loadMessages();
+    if(yes)alert('Tasdiqlandi. 3% komissiya qarzingizga yozildi.');
+    else alert('Rad etildi. Komissiya yozilmadi.');
+  }catch(e){alert(e.message||'Xato')}
+  finally{btnY.disabled=btnN.disabled=false}
+}
+$('confirmYes').onclick=()=>answerConfirm(true);
+$('confirmNo').onclick=()=>answerConfirm(false);
+// Overlay yopib bo‘lmaydi — faqat Ha/Yo‘q
+$('confirmOverlay').addEventListener('click',e=>{if(e.target===$('confirmOverlay'))e.stopPropagation()});
+
 async function loadMessages(){
   try{
     const r=await fetch('/api/seller/messages?userId='+encodeURIComponent(seller.userId),{cache:'no-store'});
     const list=r.ok?await r.json():[];
     const box=$('messagesList');
+    // Blocking overlay for first pending confirm_required
+    const pending=list.find(m=>m.requiresAction&&m.type==='confirm_required'&&m.orderId);
+    if(pending && !$('confirmOverlay').classList.contains('open')) showConfirmOverlay(pending);
     if(!list.length){box.innerHTML='<div class="empty">Xabarlar yo‘q</div>';return}
     box.innerHTML=list.map(m=>{
-      const bg=m.type==='warning'?'#fff4d6':m.type==='sms'?'#e8f4ff':'#f4f6f1';
+      const bg=m.type==='warning'?'#fff4d6':m.type==='sms'?'#e8f4ff':(m.type==='confirm_required'?'#fff8e1':'#f4f6f1');
       return `<div style="padding:14px;border-radius:14px;background:${bg};margin-bottom:10px;border:1px solid var(--line);opacity:${m.read?.6:1}">
         <div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
           <b style="font-size:14px">${esc(m.title||'Xabar')}</b>
           <span class="muted" style="font-size:11px">${esc((m.createdAt||'').slice(0,16))}</span>
         </div>
         <div style="font-size:13px;margin-top:6px;line-height:1.45">${esc(m.body||'')}</div>
-        <div style="margin-top:8px"><span class="badge">${esc(m.type||'info')}</span> ${m.read?'':'<span style="color:#b4232e;font-size:11px;font-weight:800">Yangi</span>'}</div>
+        <div style="margin-top:8px"><span class="badge">${esc(m.type||'info')}</span> ${m.read?'':'<span style="color:#b4232e;font-size:11px;font-weight:800">Yangi</span>'}${m.requiresAction?' <span style="color:#b45309;font-size:11px;font-weight:800">Javob kutilmoqda</span>':''}</div>
       </div>`;
     }).join('');
   }catch(e){$('messagesList').innerHTML='<div class="empty">Xabarlar yuklanmadi</div>'}
@@ -511,8 +568,8 @@ function openProductForm(p){if(seller&&seller.status==='frozen'&&!p){alert('Hiso
 $('pmClose').onclick=()=>$('productModal').classList.remove('open');$('btnAddProduct').onclick=()=>openProductForm(null);
 function fileToDataUrl(file){return new Promise((resolve,reject)=>{if(!file)return resolve('');if(file.size>1.8*1024*1024)return reject(new Error('Rasm 1.8 MB dan kichik'));const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(new Error('Rasm o‘qilmadi'));r.readAsDataURL(file)})}
 $('pmSave').onclick=async()=>{const btn=$('pmSave');btn.disabled=true;$('pmStatus').textContent='Saqlanmoqda...';try{let image=$('pmImage').value.trim();const file=$('pmImageFile').files?.[0];if(file)image=await fileToDataUrl(file);const body={userId:seller.userId,id:$('pmId').value||undefined,name:$('pmName').value.trim(),category:$('pmCategory').value.trim()||'Boshqa',price:Number($('pmPrice').value),oldPrice:$('pmOldPrice').value!==''?Number($('pmOldPrice').value):null,image,images:$('pmImages').value.split(',').map(x=>x.trim()).filter(Boolean),description:$('pmDesc').value.trim(),colors:$('pmColors').value.split(',').map(x=>x.trim()).filter(Boolean),
-      colorImages:(()=>{const cols=$('pmColors').value.split(',').map(x=>x.trim()).filter(Boolean);const urls=($('pmColorImages')?$('pmColorImages').value:'').split(',').map(x=>x.trim()).filter(Boolean);const map={};cols.forEach((c,i)=>{if(urls[i])map[c]=urls[i]});return Object.keys(map).length?map:undefined})(),sizes:$('pmSizes').value.split(',').map(x=>x.trim()).filter(Boolean),stock:$('pmStock').value!==''?Number($('pmStock').value):null};const r=await fetch('/api/seller/products',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw new Error(d.error||'Xatolik');$('productModal').classList.remove('open');await loadProducts();await loadSellerData()}catch(e){$('pmStatus').textContent=e.message;$('pmStatus').style.color='#b4232e'}finally{btn.disabled=false}};
-async function deleteProduct(id){if(!confirm('O‘chirilsinmi?'))return;try{const r=await fetch('/api/seller/products/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:seller.userId,productId:id})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Xato');await loadProducts();await loadSellerData()}catch(e){alert(e.message)}}
+      colorImages:(()=>{const cols=$('pmColors').value.split(',').map(x=>x.trim()).filter(Boolean);const urls=($('pmColorImages')?$('pmColorImages').value:'').split(',').map(x=>x.trim()).filter(Boolean);const map={};cols.forEach((c,i)=>{if(urls[i])map[c]=urls[i]});return Object.keys(map).length?map:undefined})(),sizes:$('pmSizes').value.split(',').map(x=>x.trim()).filter(Boolean),stock:$('pmStock').value!==''?Number($('pmStock').value):null};const r=await fetch('/api/seller/products',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,token:sessionToken})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Xatolik');$('productModal').classList.remove('open');await loadProducts();await loadSellerData()}catch(e){$('pmStatus').textContent=e.message;$('pmStatus').style.color='#b4232e'}finally{btn.disabled=false}};
+async function deleteProduct(id){if(!confirm('O‘chirilsinmi?'))return;try{const r=await fetch('/api/seller/products/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:seller.userId,productId:id,token:sessionToken})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Xato');await loadProducts();await loadSellerData()}catch(e){alert(e.message)}}
 (async function boot(){
   if(tgUserId!=='guest'){try{const r=await fetch('/api/seller/my-application?userId='+encodeURIComponent(tgUserId),{cache:'no-store'});const d=await r.json();if(d.isSeller&&d.seller&&!d.seller.login)showAuth('setup')}catch(e){}}
   if(sessionToken){try{await enterApp();return}catch(e){tokenStore.removeItem(TOKEN_KEY);sessionToken=''}}
