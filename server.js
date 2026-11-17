@@ -9,7 +9,7 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const TABLE = 'shoply_data';
 const ROOT = __dirname;
 const COMMISSION_RATE = 0.03;
-const FREEZE_THRESHOLD = 20000;
+const FREEZE_THRESHOLD = 30000;
 
 const ALLOWED = new Set([
   'mono_store_products_v2', 'mono_store_settings_v2', 'mono_store_slides_v2',
@@ -20,7 +20,7 @@ const ALLOWED = new Set([
   'shoply_sellers_v1',
   'shoply_commission_log_v1',
   'shoply_seller_messages_v1',
-  'shoply_admin_notifications_v1'
+  'shoply_admin_notifications_v1', 'shoply_news_v1'
 ]);
 
 const mime = {
@@ -146,12 +146,16 @@ async function putApplications(list) {
 }
 
 async function getCommissionLog() {
-  const x = await getOne('shoply_commission_log_v1');
+  const x = await getOne('shoply_commission_log_v1',
+  'shoply_seller_messages_v1',
+  'shoply_admin_notifications_v1');
   return Array.isArray(x.value) ? x.value : [];
 }
 
 async function putCommissionLog(list) {
-  await putOne('shoply_commission_log_v1', list);
+  await putOne('shoply_commission_log_v1',
+  'shoply_seller_messages_v1',
+  'shoply_admin_notifications_v1', list);
 }
 
 async function getProducts() {
@@ -262,33 +266,6 @@ function makeSessionToken() {
   return crypto.randomBytes(24).toString('hex');
 }
 
-/** Require valid seller session token. Returns seller or null. */
-async function requireSellerSession(req, bodyOrQuery) {
-  const token = sanitizeStr(
-    (bodyOrQuery && (bodyOrQuery.token || bodyOrQuery.sessionToken)) ||
-    (bodyOrQuery && bodyOrQuery.get && bodyOrQuery.get('token')) ||
-    req.headers['x-seller-token'] ||
-    '',
-    80
-  );
-  if (!token) return null;
-  const sellers = await getSellers();
-  // Token must match exactly ONE seller — identity comes only from token
-  const matches = sellers.filter(s => s.sessionToken && s.sessionToken === token);
-  if (matches.length !== 1) return null;
-  const seller = matches[0];
-  ensureSellerStats(seller);
-  return seller;
-}
-
-function sellerAuthError(res) {
-  return send(res, 401, { error: 'Sessiya yaroqsiz. Login va parol bilan qayta kiring.' });
-}
-
-function sellerOfficialNick(seller) {
-  if (!seller) return '';
-  return String(seller.login || seller.telegramUsername || seller.storeName || seller.fullName || seller.userId || '').replace(/^@/, '');
-}
 
 async function applyCommissionForSeller(order, onlySellerId) {
   if (!order || !Array.isArray(order.items)) return { applied: false };
@@ -373,19 +350,7 @@ http.createServer(async (req, res) => {
     // Full state (unchanged + new keys)
     if ((p === '/api/state' || p === '/api/admin/state') && req.method === 'GET') {
       if (!SUPABASE_URL || !SUPABASE_KEY) return send(res, 503, { error: 'Supabase sozlanmagan' });
-      const data = await getAll();
-      // Public state: muzlatilgan tadbirkor mahsulotlarini vaqtincha yashirish
-      if (p === '/api/state' && Array.isArray(data.mono_store_products_v2)) {
-        const sellers = Array.isArray(data.shoply_sellers_v1) ? data.shoply_sellers_v1 : [];
-        const frozenIds = new Set(sellers.filter(s => s && s.status === 'frozen').map(s => String(s.userId)));
-        if (frozenIds.size) {
-          data.mono_store_products_v2 = data.mono_store_products_v2.filter(pr => {
-            if (!pr || !pr.sellerId) return true;
-            return !frozenIds.has(String(pr.sellerId));
-          });
-        }
-      }
-      return send(res, 200, data);
+      return send(res, 200, await getAll());
     }
 
     // Generic state key (unchanged)
@@ -427,7 +392,9 @@ http.createServer(async (req, res) => {
         return {
           ...it,
           sellerId: it.sellerId || (pr && pr.sellerId) || null,
-          storeName: it.storeName || (pr && pr.storeName) || null
+          storeName: it.storeName || (pr && pr.storeName) || null,
+          image: it.image || (pr && pr.image) || (pr && Array.isArray(pr.images) ? pr.images[0] : null) || null,
+          images: it.images || (pr && Array.isArray(pr.images) ? pr.images : [])
         };
       });
       const sellers = await getSellers();
@@ -481,46 +448,31 @@ http.createServer(async (req, res) => {
         sellerConfirmations: {}
       };
       await updateOrders(list => [order, ...list].slice(0, 10000));
-      // Admin notification — aniq matn + tadbirkor rasmiy nikname
-      const sellerNicks = [];
-      for (const tg of targets) {
-        if (tg.type !== 'seller' || !tg.sellerId) continue;
-        const s = findSeller(sellers, tg.sellerId);
-        sellerNicks.push(sellerOfficialNick(s) || tg.storeName || tg.username || tg.sellerId);
-      }
-      const nickStr = sellerNicks.length ? sellerNicks.join(', ') : '—';
+      // Admin notification
       await pushAdminNotification({
         type: 'order_formalized',
-        title: 'Rasmiylashtirish amalga oshirildi',
-        body: `Rasmiylashtirish amalga oshirildi. Mijoz: ${sanitizeStr(b.name, 80)} (${sanitizeStr(b.phone, 40)}). Buyurtma: ${order.id}. Tadbirkor(lar): ${nickStr}. Mahsulotlar: ${items2.map(i => i.name).join(', ')}. Jami: ${Number(b.total) || 0} so‘m.`,
+        title: 'Yangi rasmiylashtirish',
+        body: `${sanitizeStr(b.name, 80)} (${sanitizeStr(b.phone, 40)}) buyurtma rasmiylashtirdi: ${order.id}`,
         orderId: order.id,
         customerName: sanitizeStr(b.name, 80),
-        sellers: sellerNicks,
-        officialNicks: sellerNicks
+        sellers: targets.filter(x => x.type === 'seller').map(x => x.storeName || x.username || x.sellerId)
       });
-      // Notify each seller via messages inbox — confirm_required (overlay uchun)
+      // Notify each seller via messages inbox
       const msgItem = await getOne('shoply_seller_messages_v1');
       const allMsg = msgItem.value && typeof msgItem.value === 'object' && !Array.isArray(msgItem.value) ? msgItem.value : {};
       for (const tg of targets) {
         if (tg.type !== 'seller' || !tg.sellerId) continue;
-        const s = findSeller(sellers, tg.sellerId);
-        const nick = sellerOfficialNick(s);
         const list = Array.isArray(allMsg[tg.sellerId]) ? allMsg[tg.sellerId] : [];
         const names = tg.items.map(i => i.name).join(', ');
-        const saleSum = tg.items.reduce((a, i) => a + (Number(i.price) || 0) * (Number(i.quantity) || 1), 0);
-        const commissionHint = Math.round(saleSum * COMMISSION_RATE);
         list.unshift({
           id: `MSG-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-          title: 'Rasmiylashtirish amalga oshirildi',
-          body: `Rasmiylashtirish amalga oshirildi. Mijoz ${sanitizeStr(b.name, 80)} (${sanitizeStr(b.phone, 40)}) sizning (${nick}) mahsulotlaringizni rasmiylashtirdi: ${names}. Buyurtma: ${order.id}. Taxminiy 3% komissiya: ${commissionHint} so‘m. Tasdiqlaysizmi? (Ha — 3% qarz yoziladi / Yo‘q)`,
-          type: 'confirm_required',
+          title: 'Yangi rasmiylashtirish',
+          body: `Mijoz ${sanitizeStr(b.name, 80)} (${sanitizeStr(b.phone, 40)}) sizdan mahsulot rasmiylashtirdi: ${names}. Buyurtma: ${order.id}. Panelda tasdiqlang (Ha/Yo‘q).`,
+          type: 'order',
           orderId: order.id,
-          saleAmount: saleSum,
-          commissionAmount: commissionHint,
           from: 'system',
           createdAt: nowISO(),
-          read: false,
-          requiresAction: true
+          read: false
         });
         allMsg[tg.sellerId] = list.slice(0, 500);
       }
@@ -785,23 +737,21 @@ http.createServer(async (req, res) => {
 
     // Seller products: safe merge
     if (p === '/api/seller/products' && req.method === 'GET') {
-      const token = sanitizeStr(u.searchParams.get('token') || req.headers['x-seller-token'], 80);
-      const seller = token ? await requireSellerSession(req, { token }) : null;
-      if (!seller) return sellerAuthError(res);
-      const userId = String(seller.userId);
+      const userId = sanitizeStr(u.searchParams.get('userId'), 80);
+      if (!userId) return send(res, 400, { error: 'userId kerak' });
       const products = await getProducts();
-      const mine = products.filter(pr => pr && String(pr.sellerId) === userId);
+      const mine = products.filter(pr => String(pr.sellerId) === String(userId));
       return send(res, 200, mine);
     }
 
     if (p === '/api/seller/products' && req.method === 'POST') {
       const b = await readBody(req);
-      let seller = await requireSellerSession(req, b);
-      if (!seller) return sellerAuthError(res);
-      const userId = String(seller.userId);
+      const userId = sanitizeStr(b.userId, 80);
+      if (!userId || userId === 'guest') return send(res, 400, { error: 'userId kerak' });
+
       const sellers = await getSellers();
-      // re-bind to mutable list entry
-      seller = findSeller(sellers, userId) || seller;
+      const seller = findSeller(sellers, userId);
+      if (!seller) return send(res, 403, { error: 'Siz tasdiqlangan tadbirkor emassiz' });
       if (seller.status === 'frozen') {
         return send(res, 403, {
           error: 'Hisobingiz muzlatilgan. Yangi mahsulot qo‘sha olmaysiz. Qarzingizni to‘lang yoki admin bilan bog‘laning.',
@@ -863,14 +813,13 @@ http.createServer(async (req, res) => {
 
     if (p === '/api/seller/products/delete' && req.method === 'POST') {
       const b = await readBody(req);
+      const userId = sanitizeStr(b.userId, 80);
       const productId = sanitizeStr(b.productId, 80);
-      const sellerAuth = await requireSellerSession(req, b);
-      if (!sellerAuth) return sellerAuthError(res);
-      const userId = String(sellerAuth.userId);
-      if (!productId) return send(res, 400, { error: 'productId kerak' });
+      if (!userId || !productId) return send(res, 400, { error: 'userId va productId kerak' });
 
       const sellers = await getSellers();
-      const seller = findSeller(sellers, userId) || sellerAuth;
+      const seller = findSeller(sellers, userId);
+      if (!seller) return send(res, 403, { error: 'Tadbirkor emassiz' });
       // Allow delete even if frozen (cleanup)
 
       let products = await getProducts();
@@ -890,11 +839,10 @@ http.createServer(async (req, res) => {
 
     // Seller orders (only own items)
     if (p === '/api/seller/orders' && req.method === 'GET') {
-      const token = sanitizeStr(u.searchParams.get('token') || req.headers['x-seller-token'], 80);
-      const sellerAuth = token ? await requireSellerSession(req, { token }) : null;
-      if (!sellerAuth) return sellerAuthError(res);
-      const userId = String(sellerAuth.userId);
+      const userId = sanitizeStr(u.searchParams.get('userId'), 80);
+      if (!userId) return send(res, 400, { error: 'userId kerak' });
       const sellers = await getSellers();
+      if (!findSeller(sellers, userId)) return send(res, 403, { error: 'Tadbirkor emassiz' });
 
       const ordersX = await getOne('shoply_orders_v1');
       const allOrders = Array.isArray(ordersX.value) ? ordersX.value : [];
@@ -925,16 +873,15 @@ http.createServer(async (req, res) => {
     // Optional: allow seller to mark "Jarayonda" etc on the order if they are the only seller — skip for safety.
     if (p === '/api/seller/orders/status' && req.method === 'POST') {
       const b = await readBody(req);
-      const sellerAuth = await requireSellerSession(req, b);
-      if (!sellerAuth) return sellerAuthError(res);
-      const userId = String(sellerAuth.userId);
+      const userId = sanitizeStr(b.userId, 80);
       const orderId = sanitizeStr(b.orderId, 80);
       const status = sanitizeStr(b.status, 60);
       const allowed = ['Yangi', 'Jarayonda', 'Yetkazilmoqda', 'Yetkazildi', 'Bekor qilindi'];
-      if (!orderId || !allowed.includes(status)) {
+      if (!userId || !orderId || !allowed.includes(status)) {
         return send(res, 400, { error: 'Noto‘g‘ri parametrlar' });
       }
       const sellers = await getSellers();
+      if (!findSeller(sellers, userId)) return send(res, 403, { error: 'Tadbirkor emassiz' });
 
       // Only allow if order contains this seller's items
       let touched = false;
@@ -964,10 +911,8 @@ http.createServer(async (req, res) => {
 
     // Commission history for seller
     if (p === '/api/seller/commissions' && req.method === 'GET') {
-      const token = sanitizeStr(u.searchParams.get('token') || req.headers['x-seller-token'], 80);
-      const sellerAuth = token ? await requireSellerSession(req, { token }) : null;
-      if (!sellerAuth) return sellerAuthError(res);
-      const userId = String(sellerAuth.userId);
+      const userId = sanitizeStr(u.searchParams.get('userId'), 80);
+      if (!userId) return send(res, 400, { error: 'userId kerak' });
       const log = await getCommissionLog();
       const mine = log.filter(l => String(l.sellerId) === String(userId));
       return send(res, 200, mine);
@@ -1009,9 +954,6 @@ http.createServer(async (req, res) => {
       // clear any plain leftovers
       delete seller.password;
       const token = makeSessionToken();
-      for (const o of sellers) {
-        if (o !== seller && o.sessionToken === token) o.sessionToken = '';
-      }
       seller.sessionToken = token;
       seller.sessionAt = nowISO();
       await putSellers(sellers);
@@ -1045,10 +987,6 @@ http.createServer(async (req, res) => {
         return send(res, 401, { error: 'Login yoki parol noto‘g‘ri' });
       }
       const token = makeSessionToken();
-      // Boshqa akkauntlar bilan token to‘qnashuvini oldini olish
-      for (const o of sellers) {
-        if (o !== seller && o.sessionToken === token) o.sessionToken = '';
-      }
       seller.sessionToken = token;
       seller.sessionAt = nowISO();
       seller.lastActiveAt = nowISO();
@@ -1057,7 +995,7 @@ http.createServer(async (req, res) => {
         ok: true,
         token,
         seller: {
-          userId: String(seller.userId),
+          userId: seller.userId,
           login: seller.login,
           storeName: seller.storeName,
           fullName: seller.fullName,
@@ -1071,11 +1009,13 @@ http.createServer(async (req, res) => {
 
     if (p === '/api/seller/session' && req.method === 'GET') {
       const token = sanitizeStr(u.searchParams.get('token') || req.headers['x-seller-token'], 80);
-      if (!token) return send(res, 401, { error: 'Token kerak. Login va parol bilan kiring.' });
+      const userId = sanitizeStr(u.searchParams.get('userId'), 80);
+      if (!token && !userId) return send(res, 400, { error: 'token yoki userId kerak' });
       const sellers = await getSellers();
-      const matches = sellers.filter(s => s.sessionToken && s.sessionToken === token);
-      const seller = matches.length === 1 ? matches[0] : null;
-      if (!seller) return send(res, 401, { error: 'Sessiya topilmadi. Login va parol bilan kiring.' });
+      let seller = null;
+      if (token) seller = sellers.find(s => s.sessionToken && s.sessionToken === token);
+      if (!seller && userId) seller = findSeller(sellers, userId);
+      if (!seller) return send(res, 401, { error: 'Sessiya topilmadi' });
       ensureSellerStats(seller);
       const products = await getProducts();
       seller.productsCount = products.filter(pr => String(pr.sellerId) === String(seller.userId)).length;
@@ -1097,8 +1037,7 @@ http.createServer(async (req, res) => {
         productsCount: seller.productsCount,
         approvedAt: seller.approvedAt,
         lastActiveAt: seller.lastActiveAt,
-        freezeReason: seller.freezeReason || '',
-        officialNick: sellerOfficialNick(seller)
+        freezeReason: seller.freezeReason || ''
       });
     }
 
@@ -1139,7 +1078,8 @@ http.createServer(async (req, res) => {
       if (!userId || !body) return send(res, 400, { error: 'userId va xabar matni kerak' });
       const sellers = await getSellers();
       if (!findSeller(sellers, userId)) return send(res, 404, { error: 'Tadbirkor topilmadi' });
-      const item = await getOne('shoply_seller_messages_v1');
+      const item = await getOne('shoply_seller_messages_v1',
+  'shoply_admin_notifications_v1');
       const all = item.value && typeof item.value === 'object' && !Array.isArray(item.value) ? item.value : {};
       const list = Array.isArray(all[userId]) ? all[userId] : [];
       const msg = {
@@ -1152,16 +1092,16 @@ http.createServer(async (req, res) => {
         read: false
       };
       all[userId] = [msg, ...list].slice(0, 500);
-      await putOne('shoply_seller_messages_v1', all);
+      await putOne('shoply_seller_messages_v1',
+  'shoply_admin_notifications_v1', all);
       return send(res, 201, { ok: true, message: msg });
     }
 
     if (p === '/api/seller/messages' && req.method === 'GET') {
-      const token = sanitizeStr(u.searchParams.get('token') || req.headers['x-seller-token'], 80);
-      const sellerAuth = token ? await requireSellerSession(req, { token }) : null;
-      if (!sellerAuth) return sellerAuthError(res);
-      const userId = String(sellerAuth.userId);
-      const item = await getOne('shoply_seller_messages_v1');
+      const userId = sanitizeStr(u.searchParams.get('userId'), 80);
+      if (!userId) return send(res, 400, { error: 'userId kerak' });
+      const item = await getOne('shoply_seller_messages_v1',
+  'shoply_admin_notifications_v1');
       const all = item.value && typeof item.value === 'object' && !Array.isArray(item.value) ? item.value : {};
       const list = Array.isArray(all[userId]) ? all[userId] : [];
       return send(res, 200, list);
@@ -1172,109 +1112,24 @@ http.createServer(async (req, res) => {
       const userId = sanitizeStr(b.userId, 80);
       const msgId = sanitizeStr(b.messageId, 80);
       if (!userId) return send(res, 400, { error: 'userId kerak' });
-      const item = await getOne('shoply_seller_messages_v1');
+      const item = await getOne('shoply_seller_messages_v1',
+  'shoply_admin_notifications_v1');
       const all = item.value && typeof item.value === 'object' && !Array.isArray(item.value) ? item.value : {};
       const list = Array.isArray(all[userId]) ? all[userId] : [];
       all[userId] = list.map(m => (msgId && String(m.id) !== msgId ? m : { ...m, read: true }));
-      await putOne('shoply_seller_messages_v1', all);
+      await putOne('shoply_seller_messages_v1',
+  'shoply_admin_notifications_v1', all);
       return send(res, 200, { ok: true });
     }
-
-    // Tadbirkor admin ga javob
-    if (p === '/api/seller/messages/reply' && req.method === 'POST') {
-      const b = await readBody(req);
-      const userId = sanitizeStr(b.userId, 80);
-      const body = sanitizeStr(b.body, 2000);
-      const token = sanitizeStr(b.token || req.headers['x-seller-token'], 80);
-      if (!userId || !body) return send(res, 400, { error: 'userId va xabar kerak' });
-      const sellers = await getSellers();
-      const seller = findSeller(sellers, userId);
-      if (!seller) return send(res, 403, { error: 'Tadbirkor emassiz' });
-      if (seller.passwordHash && (!token || seller.sessionToken !== token)) {
-        return send(res, 401, { error: 'Sessiya muddati tugagan' });
-      }
-      const item = await getOne('shoply_seller_messages_v1');
-      const all = item.value && typeof item.value === 'object' && !Array.isArray(item.value) ? item.value : {};
-      const list = Array.isArray(all[userId]) ? all[userId] : [];
-      const msg = {
-        id: `MSG-${Date.now()}`,
-        title: 'Javob',
-        body,
-        type: 'chat',
-        from: 'seller',
-        createdAt: nowISO(),
-        read: false
-      };
-      all[userId] = [msg, ...list].slice(0, 500);
-      await putOne('shoply_seller_messages_v1', all);
-      const nick = sellerOfficialNick(seller);
-      await pushAdminNotification({
-        type: 'seller_reply',
-        title: 'Tadbirkordan javob',
-        body: `${nick || userId}: ${body.slice(0, 200)}`,
-        officialNick: nick,
-        sellerId: userId
-      });
-      return send(res, 201, { ok: true, message: msg });
-    }
-
-    // Admin: barcha chatlar
-    if (p === '/api/admin/chats' && req.method === 'GET') {
-      const item = await getOne('shoply_seller_messages_v1');
-      const all = item.value && typeof item.value === 'object' && !Array.isArray(item.value) ? item.value : {};
-      const sellers = await getSellers();
-      const chats = Object.keys(all).map(uid => {
-        const list = Array.isArray(all[uid]) ? all[uid] : [];
-        const last = list[0] || null;
-        const s = findSeller(sellers, uid);
-        const unread = list.filter(m => m.from === 'seller' && !m.read).length;
-        return {
-          userId: uid,
-          nick: sellerOfficialNick(s) || uid,
-          storeName: s ? (s.storeName || '') : '',
-          status: s ? s.status : '',
-          lastMessage: last ? { body: last.body, from: last.from, createdAt: last.createdAt, type: last.type } : null,
-          unread,
-          count: list.length
-        };
-      }).filter(c => c.count > 0).sort((a, b) => String((b.lastMessage && b.lastMessage.createdAt) || '').localeCompare(String((a.lastMessage && a.lastMessage.createdAt) || '')));
-      return send(res, 200, chats);
-    }
-
-    if (p === '/api/admin/chats/thread' && req.method === 'GET') {
-      const userId = sanitizeStr(u.searchParams.get('userId'), 80);
-      if (!userId) return send(res, 400, { error: 'userId kerak' });
-      const item = await getOne('shoply_seller_messages_v1');
-      const all = item.value && typeof item.value === 'object' && !Array.isArray(item.value) ? item.value : {};
-      const list = Array.isArray(all[userId]) ? all[userId] : [];
-      let changed = false;
-      const next = list.map(m => {
-        if (m.from === 'seller' && !m.read) { changed = true; return { ...m, read: true }; }
-        return m;
-      });
-      if (changed) {
-        all[userId] = next;
-        await putOne('shoply_seller_messages_v1', all);
-      }
-      const sellers = await getSellers();
-      const s = findSeller(sellers, userId);
-      return send(res, 200, {
-        userId,
-        nick: sellerOfficialNick(s) || userId,
-        storeName: s ? (s.storeName || '') : '',
-        messages: [...next].reverse()
-      });
-    }
-
 
 
     if (p === '/api/seller/profile' && req.method === 'POST') {
       const b = await readBody(req);
-      let seller = await requireSellerSession(req, b);
-      if (!seller) return sellerAuthError(res);
-      const userId = String(seller.userId);
+      const userId = sanitizeStr(b.userId, 80);
+      if (!userId) return send(res, 400, { error: 'userId kerak' });
       const sellers = await getSellers();
-      seller = findSeller(sellers, userId) || seller;
+      const seller = findSeller(sellers, userId);
+      if (!seller) return send(res, 403, { error: 'Tadbirkor emassiz' });
       if (b.storeName) seller.storeName = sanitizeStr(b.storeName, 100);
       if (b.phone) seller.phone = sanitizeStr(b.phone, 40);
       if (b.email !== undefined) seller.email = sanitizeStr(b.email, 120);
@@ -1301,13 +1156,12 @@ http.createServer(async (req, res) => {
 
     if (p === '/api/seller/orders/confirm' && req.method === 'POST') {
       const b = await readBody(req);
-      const sellerAuth = await requireSellerSession(req, b);
-      if (!sellerAuth) return sellerAuthError(res);
-      const userId = String(sellerAuth.userId);
+      const userId = sanitizeStr(b.userId, 80);
       const orderId = sanitizeStr(b.orderId, 80);
       const confirm = b.confirm === true || b.confirm === 'true' || b.confirm === 'yes';
-      if (!orderId) return send(res, 400, { error: 'orderId kerak' });
+      if (!userId || !orderId) return send(res, 400, { error: 'userId va orderId kerak' });
       const sellers = await getSellers();
+      if (!findSeller(sellers, userId)) return send(res, 403, { error: 'Tadbirkor emassiz' });
       let found = false;
       let orderRef = null;
       await updateOrders(list => list.map(o => {
@@ -1328,80 +1182,26 @@ http.createServer(async (req, res) => {
       // If already decided before this request was applied... check log
       if (confirm) {
         const result = await applyCommissionForSeller(orderRef, userId);
-        const nick = sellerOfficialNick(sellerAuth);
         await pushAdminNotification({
           type: 'seller_confirmed',
           title: 'Tadbirkor buyurtmani tasdiqladi',
-          body: `Tadbirkor ${nick || userId} buyurtma ${orderId} ni tasdiqladi. Komissiya: ${result.applied ? 'hisoblandi' : 'yo‘q yoki oldin hisoblangan'}.`,
-          orderId,
-          officialNick: nick
+          body: `Tadbirkor ${userId} buyurtma ${orderId} ni tasdiqladi. Komissiya: ${result.applied ? 'hisoblandi' : 'yo‘q yoki oldin hisoblangan'}`,
+          orderId
         });
-        // Mark related confirm_required messages as handled
-        try {
-          const msgItem = await getOne('shoply_seller_messages_v1');
-          const allMsg = msgItem.value && typeof msgItem.value === 'object' && !Array.isArray(msgItem.value) ? msgItem.value : {};
-          const list = Array.isArray(allMsg[userId]) ? allMsg[userId] : [];
-          let changed = false;
-          for (const m of list) {
-            if (m.orderId === orderId && m.requiresAction) {
-              m.requiresAction = false;
-              m.read = true;
-              m.type = 'order_confirmed';
-              changed = true;
-            }
-          }
-          if (changed) {
-            allMsg[userId] = list;
-            await putOne('shoply_seller_messages_v1', allMsg);
-          }
-        } catch (e) {}
         return send(res, 200, { ok: true, confirmed: true, commission: result });
       }
-      const nickR = sellerOfficialNick(sellerAuth);
       await pushAdminNotification({
         type: 'seller_rejected',
         title: 'Tadbirkor buyurtmani rad etdi',
-        body: `Tadbirkor ${nickR || userId} buyurtma ${orderId} ni rad etdi (komissiya yozilmadi).`,
-        orderId,
-        officialNick: nickR
+        body: `Tadbirkor ${userId} buyurtma ${orderId} ni rad etdi (komissiya yozilmadi)`,
+        orderId
       });
-      try {
-        const msgItem = await getOne('shoply_seller_messages_v1');
-        const allMsg = msgItem.value && typeof msgItem.value === 'object' && !Array.isArray(msgItem.value) ? msgItem.value : {};
-        const list = Array.isArray(allMsg[userId]) ? allMsg[userId] : [];
-        let changed = false;
-        for (const m of list) {
-          if (m.orderId === orderId && m.requiresAction) {
-            m.requiresAction = false;
-            m.read = true;
-            m.type = 'order_rejected';
-            changed = true;
-          }
-        }
-        if (changed) {
-          allMsg[userId] = list;
-          await putOne('shoply_seller_messages_v1', allMsg);
-        }
-      } catch (e) {}
       return send(res, 200, { ok: true, confirmed: false });
     }
 
     if (p === '/api/admin/notifications' && req.method === 'GET') {
       const item = await getOne('shoply_admin_notifications_v1');
       return send(res, 200, Array.isArray(item.value) ? item.value : []);
-    }
-
-    if (p === '/api/admin/notifications/read' && req.method === 'POST') {
-      const b = await readBody(req);
-      const item = await getOne('shoply_admin_notifications_v1');
-      let list = Array.isArray(item.value) ? item.value : [];
-      if (b && b.all) {
-        list = list.map(n => ({ ...n, read: true }));
-      } else if (b && b.id) {
-        list = list.map(n => String(n.id) === String(b.id) ? { ...n, read: true } : n);
-      }
-      await putOne('shoply_admin_notifications_v1', list);
-      return send(res, 200, { ok: true });
     }
 
     // Reviews (unchanged)
