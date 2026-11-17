@@ -36,9 +36,3 @@ SHOPLY — TADBIRKORLIK (SELLER MARKETPLACE) MODULI
 - Service role key faqat serverda
 - Tadbirkor faqat o‘z ma’lumotlarini boshqaradi
 - Mavjud katalog / buyurtmalar / bannerlar saqlanadi
-
-
-YANGI YANGILANISHLAR:
-- Bosh sahifa banneri telefon ekranida ixcham va barcha rasmlar bir xil o‘lchamdagi ramkada (cover) ko‘rinadi. Bir nechta banner 5 soniyada almashadi.
-- Admin > Bannerlar bo‘limida Yangiliklar oynasini ham boshqarish mumkin. Yangilik foydalanuvchi kirganda chiqadi va 5 soniyada avtomatik yopiladi.
-- Buyurtma tarkibidagi mahsulotning asosiy rasmi buyurtma bilan birga saqlanadi va admin panelidagi Buyurtmalar jadvalida ko‘rinadi. Telegramga rasmni avtomatik yuborish uchun alohida bot tokeni va admin chat ID sozlanishi kerak; hozirgi Telegram ulashish oynasi rasm faylini biriktira olmaydi.

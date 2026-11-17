@@ -20,7 +20,7 @@ const ALLOWED = new Set([
   'shoply_sellers_v1',
   'shoply_commission_log_v1',
   'shoply_seller_messages_v1',
-  'shoply_admin_notifications_v1', 'shoply_news_v1'
+  'shoply_admin_notifications_v1'
 ]);
 
 const mime = {
@@ -392,9 +392,7 @@ http.createServer(async (req, res) => {
         return {
           ...it,
           sellerId: it.sellerId || (pr && pr.sellerId) || null,
-          storeName: it.storeName || (pr && pr.storeName) || null,
-          image: it.image || (pr && pr.image) || (pr && Array.isArray(pr.images) ? pr.images[0] : null) || null,
-          images: it.images || (pr && Array.isArray(pr.images) ? pr.images : [])
+          storeName: it.storeName || (pr && pr.storeName) || null
         };
       });
       const sellers = await getSellers();

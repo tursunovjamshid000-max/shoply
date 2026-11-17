@@ -362,7 +362,7 @@ html,body{max-width:100%;overflow-x:hidden!important}
   <div class="panel">
     <div class="toolbar"><h2>Bannerlar</h2><button class="primary" id="addBanner">＋ Banner qo‘shish</button></div>
     <p class="muted">Banner sarlavhasi va matni do‘konning yuqori qismida ko‘rsatiladi.</p>
-    <div id="bannerList"></div><hr style="border:0;border-top:1px solid var(--line);margin:22px 0"><div class="toolbar"><h2>Yangiliklar oynasi</h2><button class="primary" id="addNews">＋ Yangilik qo‘shish</button></div><p class="muted">Foydalanuvchi saytga kirganda yangilik bir marta ko‘rinadi va 5 soniyadan keyin yopiladi. X tugmasi bilan ham yopish mumkin.</p><div id="newsList"></div>
+    <div id="bannerList"></div>
   </div>
 </section>
 
@@ -535,7 +535,6 @@ html,body{max-width:100%;overflow-x:hidden!important}
 </form>
 </div>
 
-<div class="modal" id="newsModal"><form class="modal-card" id="newsForm" autocomplete="off"><h2>Yangilik qo‘shish</h2><label class="label" for="nTitle">Sarlavha (ixtiyoriy)</label><input class="field" id="nTitle" maxlength="100" placeholder="Masalan: SHOPLY’da yangi imkoniyat"><label class="label" for="nText">Matn (ixtiyoriy)</label><textarea class="field" id="nText" maxlength="500" placeholder="Yangilik haqida qisqacha..."></textarea><label class="label" for="nImageFile">Rasm (ixtiyoriy)</label><input class="field" id="nImageFile" type="file" accept="image/*"><div id="nImagePreview" style="display:none;margin:8px 0"><img alt="Yangilik rasmi" style="width:100%;max-height:180px;object-fit:cover;border-radius:12px"></div><div class="form-actions"><button class="secondary" type="button" id="cancelNews">Bekor qilish</button><button class="primary" type="submit">Saqlash</button></div></form></div>
 <div class="modal" id="bannerModal">
 <form class="modal-card" id="bannerForm" autocomplete="off">
   <h2>Banner qo‘shish</h2>
@@ -553,7 +552,7 @@ html,body{max-width:100%;overflow-x:hidden!important}
   const sharedKeys = new Set([
     'mono_store_products_v2','mono_store_settings_v2','mono_store_slides_v2',
     'mono_store_cart_events_v1','shoply_reviews_v1','shoply_orders_v1',
-    'mono_store_admin_profile_v1','shoply_site_builder_v1','shoply_promo_codes_v1','shoply_news_v1'
+    'mono_store_admin_profile_v1','shoply_site_builder_v1','shoply_promo_codes_v1'
   ]);
   const nativeGet=Storage.prototype.getItem, nativeSet=Storage.prototype.setItem, nativeRemove=Storage.prototype.removeItem;
   const pending=new Map();
@@ -883,10 +882,6 @@ $('bannerForm').addEventListener('submit',async e=>{
  if(save(SLIDE_KEY,slides)){$('bannerForm').reset();$('bEyebrow').value='SHOPLY COLLECTION';$('bEmoji').value='✳';$('bColor').value='#b7f34a';$('bImagePreview').style.display='none';$('bannerModal').classList.remove('show');renderBanners();}
 });
 
-let shoplyNews=readArray('shoply_news_v1',[]);
-function renderNews(){shoplyNews=readArray('shoply_news_v1',[]);const box=$('newsList');if(!box)return;box.innerHTML=shoplyNews.length?shoplyNews.map((n,i)=>`<div style="display:flex;gap:12px;align-items:center;border-bottom:1px solid var(--line);padding:12px 0">${n.image?`<img src="${n.image}" alt="" style="width:92px;height:62px;object-fit:cover;border-radius:9px">`:''}<div style="flex:1;min-width:0"><b>${esc(n.title||'Sarlavhasiz yangilik')}</b><div class="muted" style="font-size:12px">${esc(n.text||'Faqat rasm')}</div><small>${n.active===false?'Faol emas':'Faol'}</small></div><button class="secondary" data-news-toggle="${i}">${n.active===false?'Yoqish':'O‘chirish'}</button><button class="danger" data-news-delete="${i}">O‘chirish</button></div>`).join(''):'<p class="muted">Hozircha yangilik yo‘q.</p>';box.querySelectorAll('[data-news-toggle]').forEach(b=>b.onclick=()=>{const i=+b.dataset.newsToggle;shoplyNews[i].active=shoplyNews[i].active===false;save('shoply_news_v1',shoplyNews);window.shoplyPush?.('shoply_news_v1',shoplyNews);renderNews()});box.querySelectorAll('[data-news-delete]').forEach(b=>b.onclick=()=>{const i=+b.dataset.newsDelete;if(!confirm('Yangilik o‘chirilsinmi?'))return;shoplyNews.splice(i,1);save('shoply_news_v1',shoplyNews);window.shoplyPush?.('shoply_news_v1',shoplyNews);renderNews()})}
-$('addNews').onclick=()=>$('newsModal').classList.add('show');$('cancelNews').onclick=()=>$('newsModal').classList.remove('show');$('nImageFile').addEventListener('change',async()=>{const f=$('nImageFile').files?.[0];if(!f)return;try{const data=await shoplyImageData(f);$('nImagePreview').querySelector('img').src=data;$('nImagePreview').style.display='block'}catch(e){alert(e.message)}});$('newsForm').addEventListener('submit',async e=>{e.preventDefault();let image='';try{if($('nImageFile').files?.[0])image=await shoplyImageData($('nImageFile').files[0])}catch(err){alert(err.message);return}shoplyNews=readArray('shoply_news_v1',[]);shoplyNews.unshift({id:'NEWS-'+Date.now(),title:$('nTitle').value.trim(),text:$('nText').value.trim(),image,active:true,createdAt:new Date().toISOString()});if(save('shoply_news_v1',shoplyNews)){await window.shoplyPush?.('shoply_news_v1',shoplyNews);$('newsForm').reset();$('nImagePreview').style.display='none';$('newsModal').classList.remove('show');renderNews()}});
-
 function applyAccent(color){
  const valid=/^#[0-9a-f]{6}$/i.test(color||'')?color:'#b7f34a';
  document.documentElement.style.setProperty('--accent',valid);
@@ -912,7 +907,7 @@ async function renderOrders(){
  const body=$('ordersRows');body.innerHTML='<tr><td colspan="6">Buyurtmalar yuklanmoqda...</td></tr>';
  try{const r=await fetch('/api/orders',{cache:'no-store'});if(!r.ok)throw new Error();const list=await r.json();const orders=Array.isArray(list)?list:[];
  $('ordersTotal').textContent=orders.length;$('ordersNew').textContent=orders.filter(o=>(o.status||'Yangi')==='Yangi').length;$('ordersProcess').textContent=orders.filter(o=>o.status==='Jarayonda').length;$('ordersDone').textContent=orders.filter(o=>o.status==='Yetkazildi').length;
- body.innerHTML=orders.length?orders.map(o=>`<tr><td><b>${esc(o.id||'—')}</b></td><td>${esc(o.name||'—')}<br><small>${esc(o.phone||'')}</small><br><small>${esc(o.address||'')}</small></td><td>${(o.items||[]).map(i=>`${i.image?`<img src="${esc(i.image)}" alt="" style="width:42px;height:42px;object-fit:cover;border-radius:7px;vertical-align:middle;margin-right:6px">`:''}${esc(i.name)} × ${Number(i.quantity||1)}`).join('<br>')}</td><td><b>${sumMoney(o.total)}</b></td><td>${esc(new Date(o.createdAt).toLocaleString('uz-UZ'))}</td><td><select class="field order-status" data-order="${esc(o.id)}" style="min-width:125px"><option ${o.status==='Yangi'?'selected':''}>Yangi</option><option ${o.status==='Jarayonda'?'selected':''}>Jarayonda</option><option ${o.status==='Yetkazilmoqda'?'selected':''}>Yetkazilmoqda</option><option ${o.status==='Yetkazildi'?'selected':''}>Yetkazildi</option><option ${o.status==='Bekor qilindi'?'selected':''}>Bekor qilindi</option></select></td></tr>`).join(''):'<tr><td colspan="6">Hozircha buyurtma yo‘q.</td></tr>';
+ body.innerHTML=orders.length?orders.map(o=>`<tr><td><b>${esc(o.id||'—')}</b></td><td>${esc(o.name||'—')}<br><small>${esc(o.phone||'')}</small><br><small>${esc(o.address||'')}</small></td><td>${(o.items||[]).map(i=>esc(i.name)+' × '+Number(i.quantity||1)).join('<br>')}</td><td><b>${sumMoney(o.total)}</b></td><td>${esc(new Date(o.createdAt).toLocaleString('uz-UZ'))}</td><td><select class="field order-status" data-order="${esc(o.id)}" style="min-width:125px"><option ${o.status==='Yangi'?'selected':''}>Yangi</option><option ${o.status==='Jarayonda'?'selected':''}>Jarayonda</option><option ${o.status==='Yetkazilmoqda'?'selected':''}>Yetkazilmoqda</option><option ${o.status==='Yetkazildi'?'selected':''}>Yetkazildi</option><option ${o.status==='Bekor qilindi'?'selected':''}>Bekor qilindi</option></select></td></tr>`).join(''):'<tr><td colspan="6">Hozircha buyurtma yo‘q.</td></tr>';
  body.querySelectorAll('.order-status').forEach(sel=>sel.onchange=async()=>{try{const r=await fetch('/api/orders/'+encodeURIComponent(sel.dataset.order),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:sel.value})});if(!r.ok)throw new Error();await renderOrders()}catch{alert('Buyurtma holatini saqlab bo‘lmadi.')}});
  }catch{body.innerHTML='<tr><td colspan="6">Buyurtmalarni yuklab bo‘lmadi. Server va Supabase ulanishini tekshiring.</td></tr>'}
 }
@@ -948,7 +943,7 @@ function showSection(id){
  $('headerAdd').classList.toggle('hidden',id!=='products');
  if(id==='dashboard'||id==='cart')renderCart();
  if(id==='products')renderProducts();
- if(id==='banners'){renderBanners();renderNews();}
+ if(id==='banners')renderBanners();
  if(id==='orders')renderOrders();
  if(id==='reviews')renderReviews();
  if(id==='settings')loadProfile();
@@ -1300,7 +1295,7 @@ function applyNavOrder(order){const side=document.getElementById('adminSidebar')
 loadProfile();
 renderProducts();
 renderCart();
-renderBanners();renderNews();
+renderBanners();
 
 window.addEventListener('storage',e=>{
  if([PRODUCT_KEY,CART_EVENT_KEY,SLIDE_KEY,SETTINGS_KEY,PROMO_KEY].includes(e.key)){
