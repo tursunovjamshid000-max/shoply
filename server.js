@@ -9,7 +9,7 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const TABLE = 'shoply_data';
 const ROOT = __dirname;
 const COMMISSION_RATE = 0.03;
-const FREEZE_THRESHOLD = 30000;
+const FREEZE_THRESHOLD = 20000;
 
 const ALLOWED = new Set([
   'mono_store_products_v2', 'mono_store_settings_v2', 'mono_store_slides_v2',
@@ -19,7 +19,8 @@ const ALLOWED = new Set([
   'shoply_seller_applications_v1',
   'shoply_sellers_v1',
   'shoply_commission_log_v1',
-  'shoply_seller_messages_v1'
+  'shoply_seller_messages_v1',
+  'shoply_admin_notifications_v1'
 ]);
 
 const mime = {
@@ -145,14 +146,12 @@ async function putApplications(list) {
 }
 
 async function getCommissionLog() {
-  const x = await getOne('shoply_commission_log_v1',
-  'shoply_seller_messages_v1');
+  const x = await getOne('shoply_commission_log_v1');
   return Array.isArray(x.value) ? x.value : [];
 }
 
 async function putCommissionLog(list) {
-  await putOne('shoply_commission_log_v1',
-  'shoply_seller_messages_v1', list);
+  await putOne('shoply_commission_log_v1', list);
 }
 
 async function getProducts() {
@@ -263,6 +262,89 @@ function makeSessionToken() {
   return crypto.randomBytes(24).toString('hex');
 }
 
+/** Require valid seller session token. Returns seller or null. */
+async function requireSellerSession(req, bodyOrQuery) {
+  const token = sanitizeStr(
+    (bodyOrQuery && (bodyOrQuery.token || bodyOrQuery.sessionToken)) ||
+    req.headers['x-seller-token'] ||
+    '',
+    80
+  );
+  if (!token) return null;
+  const sellers = await getSellers();
+  const seller = sellers.find(s => s.sessionToken && s.sessionToken === token);
+  if (!seller) return null;
+  ensureSellerStats(seller);
+  return seller;
+}
+
+function sellerOfficialNick(seller) {
+  if (!seller) return '';
+  return String(seller.login || seller.telegramUsername || seller.storeName || seller.fullName || seller.userId || '').replace(/^@/, '');
+}
+
+async function applyCommissionForSeller(order, onlySellerId) {
+  if (!order || !Array.isArray(order.items)) return { applied: false };
+  const products = await getProducts();
+  const byId = new Map(products.map(p => [String(p.id), p]));
+  const sellers = await getSellers();
+  const log = await getCommissionLog();
+  const existing = new Set(log.filter(l => l.orderId === order.id).map(l => `${l.orderId}:${l.productId}:${l.sellerId}`));
+  let any = false;
+  const entries = [];
+  for (const item of order.items) {
+    const pid = String(item.productId || item.id || '');
+    const p = byId.get(pid) || {};
+    const sellerId = item.sellerId || p.sellerId;
+    if (!sellerId || String(sellerId) !== String(onlySellerId)) continue;
+    const key = `${order.id}:${pid}:${sellerId}`;
+    if (existing.has(key)) continue;
+    const qty = Math.max(1, Number(item.quantity) || 1);
+    const price = Number(item.price != null ? item.price : p.price) || 0;
+    const line = price * qty;
+    const commission = Math.round(line * COMMISSION_RATE);
+    if (commission <= 0) continue;
+    const seller = findSeller(sellers, sellerId);
+    if (!seller) continue;
+    ensureSellerStats(seller);
+    seller.debt += commission;
+    seller.totalSales += line;
+    seller.totalCommission += commission;
+    seller.lastActiveAt = nowISO();
+    if (seller.debt >= FREEZE_THRESHOLD) {
+      seller.status = 'frozen';
+      seller.frozenAt = seller.frozenAt || nowISO();
+      seller.freezeReason = seller.freezeReason || `Komissiya qarzi ${FREEZE_THRESHOLD} so‘mdan oshdi`;
+    }
+    entries.push({
+      id: `COM-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      orderId: order.id,
+      productId: pid,
+      productName: item.name || p.name || '',
+      sellerId: String(sellerId),
+      amount: commission,
+      saleAmount: line,
+      quantity: qty,
+      createdAt: nowISO(),
+      source: 'seller_confirm'
+    });
+    existing.add(key);
+    any = true;
+  }
+  if (any) {
+    await putSellers(sellers);
+    await putCommissionLog([...entries, ...log].slice(0, 20000));
+  }
+  return { applied: any, entries };
+}
+
+async function pushAdminNotification(note) {
+  const item = await getOne('shoply_admin_notifications_v1');
+  const list = Array.isArray(item.value) ? item.value : [];
+  list.unshift({ id: `N-${Date.now()}`, createdAt: nowISO(), read: false, ...note });
+  await putOne('shoply_admin_notifications_v1', list.slice(0, 2000));
+}
+
 http.createServer(async (req, res) => {
   const u = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const p = u.pathname;
@@ -284,7 +366,19 @@ http.createServer(async (req, res) => {
     // Full state (unchanged + new keys)
     if ((p === '/api/state' || p === '/api/admin/state') && req.method === 'GET') {
       if (!SUPABASE_URL || !SUPABASE_KEY) return send(res, 503, { error: 'Supabase sozlanmagan' });
-      return send(res, 200, await getAll());
+      const data = await getAll();
+      // Public state: muzlatilgan tadbirkor mahsulotlarini vaqtincha yashirish
+      if (p === '/api/state' && Array.isArray(data.mono_store_products_v2)) {
+        const sellers = Array.isArray(data.shoply_sellers_v1) ? data.shoply_sellers_v1 : [];
+        const frozenIds = new Set(sellers.filter(s => s && s.status === 'frozen').map(s => String(s.userId)));
+        if (frozenIds.size) {
+          data.mono_store_products_v2 = data.mono_store_products_v2.filter(pr => {
+            if (!pr || !pr.sellerId) return true;
+            return !frozenIds.has(String(pr.sellerId));
+          });
+        }
+      }
+      return send(res, 200, data);
     }
 
     // Generic state key (unchanged)
@@ -329,16 +423,102 @@ http.createServer(async (req, res) => {
           storeName: it.storeName || (pr && pr.storeName) || null
         };
       });
+      const sellers = await getSellers();
+      const items2 = items.map(it => {
+        const sid = it.sellerId;
+        let sellerUsername = it.sellerUsername || null;
+        let storeName = it.storeName || null;
+        if (sid) {
+          const s = findSeller(sellers, sid);
+          if (s) {
+            sellerUsername = sellerUsername || (s.telegramUsername || '').replace(/^@/, '') || null;
+            storeName = storeName || s.storeName || null;
+          }
+        }
+        return { ...it, sellerId: sid || null, sellerUsername, storeName };
+      });
+      // Group telegram targets: admin default zydex4, sellers their username
+      const targets = [];
+      const adminItems = items2.filter(i => !i.sellerId);
+      const bySeller = {};
+      for (const it of items2) {
+        if (!it.sellerId) continue;
+        if (!bySeller[it.sellerId]) bySeller[it.sellerId] = [];
+        bySeller[it.sellerId].push(it);
+      }
+      if (adminItems.length) {
+        targets.push({ type: 'admin', username: 'zydex4', items: adminItems, label: 'SHOPLY Admin' });
+      }
+      for (const [sid, its] of Object.entries(bySeller)) {
+        const s = findSeller(sellers, sid);
+        const uname = (its[0].sellerUsername || (s && s.telegramUsername) || '').replace(/^@/, '');
+        targets.push({
+          type: 'seller',
+          sellerId: sid,
+          username: uname || null,
+          storeName: (s && s.storeName) || its[0].storeName || '',
+          items: its,
+          label: (s && s.storeName) || 'Tadbirkor'
+        });
+      }
       const order = {
         ...b,
-        items,
+        items: items2,
         id: b.id || `ORD-${Date.now()}`,
         createdAt: b.createdAt || nowISO(),
         status: b.status || 'Yangi',
-        commissionApplied: false
+        commissionApplied: false,
+        formalized: true,
+        formalizedAt: nowISO(),
+        telegramTargets: targets.map(x => ({ type: x.type, username: x.username, sellerId: x.sellerId || null, storeName: x.storeName || null })),
+        sellerConfirmations: {}
       };
       await updateOrders(list => [order, ...list].slice(0, 10000));
-      return send(res, 201, { ok: true, id: order.id });
+      // Admin notification — aniq matn + tadbirkor rasmiy nikname
+      const sellerNicks = [];
+      for (const tg of targets) {
+        if (tg.type !== 'seller' || !tg.sellerId) continue;
+        const s = findSeller(sellers, tg.sellerId);
+        sellerNicks.push(sellerOfficialNick(s) || tg.storeName || tg.username || tg.sellerId);
+      }
+      const nickStr = sellerNicks.length ? sellerNicks.join(', ') : '—';
+      await pushAdminNotification({
+        type: 'order_formalized',
+        title: 'Rasmiylashtirish amalga oshirildi',
+        body: `Rasmiylashtirish amalga oshirildi. Mijoz: ${sanitizeStr(b.name, 80)} (${sanitizeStr(b.phone, 40)}). Buyurtma: ${order.id}. Tadbirkor(lar): ${nickStr}. Mahsulotlar: ${items2.map(i => i.name).join(', ')}. Jami: ${Number(b.total) || 0} so‘m.`,
+        orderId: order.id,
+        customerName: sanitizeStr(b.name, 80),
+        sellers: sellerNicks,
+        officialNicks: sellerNicks
+      });
+      // Notify each seller via messages inbox — confirm_required (overlay uchun)
+      const msgItem = await getOne('shoply_seller_messages_v1');
+      const allMsg = msgItem.value && typeof msgItem.value === 'object' && !Array.isArray(msgItem.value) ? msgItem.value : {};
+      for (const tg of targets) {
+        if (tg.type !== 'seller' || !tg.sellerId) continue;
+        const s = findSeller(sellers, tg.sellerId);
+        const nick = sellerOfficialNick(s);
+        const list = Array.isArray(allMsg[tg.sellerId]) ? allMsg[tg.sellerId] : [];
+        const names = tg.items.map(i => i.name).join(', ');
+        const saleSum = tg.items.reduce((a, i) => a + (Number(i.price) || 0) * (Number(i.quantity) || 1), 0);
+        const commissionHint = Math.round(saleSum * COMMISSION_RATE);
+        list.unshift({
+          id: `MSG-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          title: 'Rasmiylashtirish amalga oshirildi',
+          body: `Rasmiylashtirish amalga oshirildi. Mijoz ${sanitizeStr(b.name, 80)} (${sanitizeStr(b.phone, 40)}) sizning (${nick}) mahsulotlaringizni rasmiylashtirdi: ${names}. Buyurtma: ${order.id}. Taxminiy 3% komissiya: ${commissionHint} so‘m. Tasdiqlaysizmi? (Ha — 3% qarz yoziladi / Yo‘q)`,
+          type: 'confirm_required',
+          orderId: order.id,
+          saleAmount: saleSum,
+          commissionAmount: commissionHint,
+          from: 'system',
+          createdAt: nowISO(),
+          read: false,
+          requiresAction: true
+        });
+        allMsg[tg.sellerId] = list.slice(0, 500);
+      }
+      if (targets.some(x => x.type === 'seller')) await putOne('shoply_seller_messages_v1', allMsg);
+      return send(res, 201, { ok: true, id: order.id, telegramTargets: targets.map(x => ({ type: x.type, username: x.username, sellerId: x.sellerId, storeName: x.storeName, itemNames: x.items.map(i => i.name) })) });
     }
 
     if (p.startsWith('/api/orders/') && req.method === 'PATCH') {
@@ -611,8 +791,15 @@ http.createServer(async (req, res) => {
       if (!userId || userId === 'guest') return send(res, 400, { error: 'userId kerak' });
 
       const sellers = await getSellers();
-      const seller = findSeller(sellers, userId);
+      let seller = findSeller(sellers, userId);
       if (!seller) return send(res, 403, { error: 'Siz tasdiqlangan tadbirkor emassiz' });
+      // Parol o‘rnatilgan bo‘lsa — session token majburiy
+      if (seller.passwordHash) {
+        const token = sanitizeStr(b.token || req.headers['x-seller-token'], 80);
+        if (!token || seller.sessionToken !== token) {
+          return send(res, 401, { error: 'Sessiya muddati tugagan. Qayta login qiling.' });
+        }
+      }
       if (seller.status === 'frozen') {
         return send(res, 403, {
           error: 'Hisobingiz muzlatilgan. Yangi mahsulot qo‘sha olmaysiz. Qarzingizni to‘lang yoki admin bilan bog‘laning.',
@@ -681,6 +868,12 @@ http.createServer(async (req, res) => {
       const sellers = await getSellers();
       const seller = findSeller(sellers, userId);
       if (!seller) return send(res, 403, { error: 'Tadbirkor emassiz' });
+      if (seller.passwordHash) {
+        const token = sanitizeStr(b.token || req.headers['x-seller-token'], 80);
+        if (!token || seller.sessionToken !== token) {
+          return send(res, 401, { error: 'Sessiya muddati tugagan. Qayta login qiling.' });
+        }
+      }
       // Allow delete even if frozen (cleanup)
 
       let products = await getProducts();
@@ -875,8 +1068,14 @@ http.createServer(async (req, res) => {
       const sellers = await getSellers();
       let seller = null;
       if (token) seller = sellers.find(s => s.sessionToken && s.sessionToken === token);
-      if (!seller && userId) seller = findSeller(sellers, userId);
-      if (!seller) return send(res, 401, { error: 'Sessiya topilmadi' });
+      // Agar parol o‘rnatilgan bo‘lsa — faqat token bilan kirish mumkin (userId bilan bypass yo‘q)
+      if (!seller && userId) {
+        const byUser = findSeller(sellers, userId);
+        if (byUser && !byUser.passwordHash) {
+          seller = byUser; // faqat hali login yaratmaganlar uchun
+        }
+      }
+      if (!seller) return send(res, 401, { error: 'Sessiya topilmadi. Login va parol bilan kiring.' });
       ensureSellerStats(seller);
       const products = await getProducts();
       seller.productsCount = products.filter(pr => String(pr.sellerId) === String(seller.userId)).length;
@@ -898,7 +1097,8 @@ http.createServer(async (req, res) => {
         productsCount: seller.productsCount,
         approvedAt: seller.approvedAt,
         lastActiveAt: seller.lastActiveAt,
-        freezeReason: seller.freezeReason || ''
+        freezeReason: seller.freezeReason || '',
+        officialNick: sellerOfficialNick(seller)
       });
     }
 
@@ -978,6 +1178,93 @@ http.createServer(async (req, res) => {
       return send(res, 200, { ok: true });
     }
 
+    // Tadbirkor admin ga javob
+    if (p === '/api/seller/messages/reply' && req.method === 'POST') {
+      const b = await readBody(req);
+      const userId = sanitizeStr(b.userId, 80);
+      const body = sanitizeStr(b.body, 2000);
+      const token = sanitizeStr(b.token || req.headers['x-seller-token'], 80);
+      if (!userId || !body) return send(res, 400, { error: 'userId va xabar kerak' });
+      const sellers = await getSellers();
+      const seller = findSeller(sellers, userId);
+      if (!seller) return send(res, 403, { error: 'Tadbirkor emassiz' });
+      if (seller.passwordHash && (!token || seller.sessionToken !== token)) {
+        return send(res, 401, { error: 'Sessiya muddati tugagan' });
+      }
+      const item = await getOne('shoply_seller_messages_v1');
+      const all = item.value && typeof item.value === 'object' && !Array.isArray(item.value) ? item.value : {};
+      const list = Array.isArray(all[userId]) ? all[userId] : [];
+      const msg = {
+        id: `MSG-${Date.now()}`,
+        title: 'Javob',
+        body,
+        type: 'chat',
+        from: 'seller',
+        createdAt: nowISO(),
+        read: false
+      };
+      all[userId] = [msg, ...list].slice(0, 500);
+      await putOne('shoply_seller_messages_v1', all);
+      const nick = sellerOfficialNick(seller);
+      await pushAdminNotification({
+        type: 'seller_reply',
+        title: 'Tadbirkordan javob',
+        body: `${nick || userId}: ${body.slice(0, 200)}`,
+        officialNick: nick,
+        sellerId: userId
+      });
+      return send(res, 201, { ok: true, message: msg });
+    }
+
+    // Admin: barcha chatlar
+    if (p === '/api/admin/chats' && req.method === 'GET') {
+      const item = await getOne('shoply_seller_messages_v1');
+      const all = item.value && typeof item.value === 'object' && !Array.isArray(item.value) ? item.value : {};
+      const sellers = await getSellers();
+      const chats = Object.keys(all).map(uid => {
+        const list = Array.isArray(all[uid]) ? all[uid] : [];
+        const last = list[0] || null;
+        const s = findSeller(sellers, uid);
+        const unread = list.filter(m => m.from === 'seller' && !m.read).length;
+        return {
+          userId: uid,
+          nick: sellerOfficialNick(s) || uid,
+          storeName: s ? (s.storeName || '') : '',
+          status: s ? s.status : '',
+          lastMessage: last ? { body: last.body, from: last.from, createdAt: last.createdAt, type: last.type } : null,
+          unread,
+          count: list.length
+        };
+      }).filter(c => c.count > 0).sort((a, b) => String((b.lastMessage && b.lastMessage.createdAt) || '').localeCompare(String((a.lastMessage && a.lastMessage.createdAt) || '')));
+      return send(res, 200, chats);
+    }
+
+    if (p === '/api/admin/chats/thread' && req.method === 'GET') {
+      const userId = sanitizeStr(u.searchParams.get('userId'), 80);
+      if (!userId) return send(res, 400, { error: 'userId kerak' });
+      const item = await getOne('shoply_seller_messages_v1');
+      const all = item.value && typeof item.value === 'object' && !Array.isArray(item.value) ? item.value : {};
+      const list = Array.isArray(all[userId]) ? all[userId] : [];
+      let changed = false;
+      const next = list.map(m => {
+        if (m.from === 'seller' && !m.read) { changed = true; return { ...m, read: true }; }
+        return m;
+      });
+      if (changed) {
+        all[userId] = next;
+        await putOne('shoply_seller_messages_v1', all);
+      }
+      const sellers = await getSellers();
+      const s = findSeller(sellers, userId);
+      return send(res, 200, {
+        userId,
+        nick: sellerOfficialNick(s) || userId,
+        storeName: s ? (s.storeName || '') : '',
+        messages: [...next].reverse()
+      });
+    }
+
+
 
     if (p === '/api/seller/profile' && req.method === 'POST') {
       const b = await readBody(req);
@@ -1007,6 +1294,118 @@ http.createServer(async (req, res) => {
         if (changed) await putProducts(products);
       }
       return send(res, 200, { ok: true, seller: { userId: seller.userId, storeName: seller.storeName, logo: seller.logo || '', photo: seller.photo || '' } });
+    }
+
+
+    if (p === '/api/seller/orders/confirm' && req.method === 'POST') {
+      const b = await readBody(req);
+      const userId = sanitizeStr(b.userId, 80);
+      const orderId = sanitizeStr(b.orderId, 80);
+      const confirm = b.confirm === true || b.confirm === 'true' || b.confirm === 'yes';
+      if (!userId || !orderId) return send(res, 400, { error: 'userId va orderId kerak' });
+      const sellers = await getSellers();
+      const sellerAuth = findSeller(sellers, userId);
+      if (!sellerAuth) return send(res, 403, { error: 'Tadbirkor emassiz' });
+      if (sellerAuth.passwordHash) {
+        const token = sanitizeStr(b.token || req.headers['x-seller-token'], 80);
+        if (!token || sellerAuth.sessionToken !== token) {
+          return send(res, 401, { error: 'Sessiya muddati tugagan. Qayta login qiling.' });
+        }
+      }
+      let found = false;
+      let orderRef = null;
+      await updateOrders(list => list.map(o => {
+        if (String(o.id) !== orderId) return o;
+        found = true;
+        const conf = { ...(o.sellerConfirmations || {}) };
+        if (conf[userId] === 'confirmed' || conf[userId] === 'rejected') {
+          orderRef = o;
+          return o;
+        }
+        conf[userId] = confirm ? 'confirmed' : 'rejected';
+        const next = { ...o, sellerConfirmations: conf, status: confirm ? (o.status === 'Yangi' ? 'Jarayonda' : o.status) : o.status };
+        orderRef = next;
+        return next;
+      }));
+      if (!found) return send(res, 404, { error: 'Buyurtma topilmadi' });
+      const prev = (orderRef && orderRef.sellerConfirmations && orderRef.sellerConfirmations[userId]);
+      // If already decided before this request was applied... check log
+      if (confirm) {
+        const result = await applyCommissionForSeller(orderRef, userId);
+        const nick = sellerOfficialNick(sellerAuth);
+        await pushAdminNotification({
+          type: 'seller_confirmed',
+          title: 'Tadbirkor buyurtmani tasdiqladi',
+          body: `Tadbirkor ${nick || userId} buyurtma ${orderId} ni tasdiqladi. Komissiya: ${result.applied ? 'hisoblandi' : 'yo‘q yoki oldin hisoblangan'}.`,
+          orderId,
+          officialNick: nick
+        });
+        // Mark related confirm_required messages as handled
+        try {
+          const msgItem = await getOne('shoply_seller_messages_v1');
+          const allMsg = msgItem.value && typeof msgItem.value === 'object' && !Array.isArray(msgItem.value) ? msgItem.value : {};
+          const list = Array.isArray(allMsg[userId]) ? allMsg[userId] : [];
+          let changed = false;
+          for (const m of list) {
+            if (m.orderId === orderId && m.requiresAction) {
+              m.requiresAction = false;
+              m.read = true;
+              m.type = 'order_confirmed';
+              changed = true;
+            }
+          }
+          if (changed) {
+            allMsg[userId] = list;
+            await putOne('shoply_seller_messages_v1', allMsg);
+          }
+        } catch (e) {}
+        return send(res, 200, { ok: true, confirmed: true, commission: result });
+      }
+      const nickR = sellerOfficialNick(sellerAuth);
+      await pushAdminNotification({
+        type: 'seller_rejected',
+        title: 'Tadbirkor buyurtmani rad etdi',
+        body: `Tadbirkor ${nickR || userId} buyurtma ${orderId} ni rad etdi (komissiya yozilmadi).`,
+        orderId,
+        officialNick: nickR
+      });
+      try {
+        const msgItem = await getOne('shoply_seller_messages_v1');
+        const allMsg = msgItem.value && typeof msgItem.value === 'object' && !Array.isArray(msgItem.value) ? msgItem.value : {};
+        const list = Array.isArray(allMsg[userId]) ? allMsg[userId] : [];
+        let changed = false;
+        for (const m of list) {
+          if (m.orderId === orderId && m.requiresAction) {
+            m.requiresAction = false;
+            m.read = true;
+            m.type = 'order_rejected';
+            changed = true;
+          }
+        }
+        if (changed) {
+          allMsg[userId] = list;
+          await putOne('shoply_seller_messages_v1', allMsg);
+        }
+      } catch (e) {}
+      return send(res, 200, { ok: true, confirmed: false });
+    }
+
+    if (p === '/api/admin/notifications' && req.method === 'GET') {
+      const item = await getOne('shoply_admin_notifications_v1');
+      return send(res, 200, Array.isArray(item.value) ? item.value : []);
+    }
+
+    if (p === '/api/admin/notifications/read' && req.method === 'POST') {
+      const b = await readBody(req);
+      const item = await getOne('shoply_admin_notifications_v1');
+      let list = Array.isArray(item.value) ? item.value : [];
+      if (b && b.all) {
+        list = list.map(n => ({ ...n, read: true }));
+      } else if (b && b.id) {
+        list = list.map(n => String(n.id) === String(b.id) ? { ...n, read: true } : n);
+      }
+      await putOne('shoply_admin_notifications_v1', list);
+      return send(res, 200, { ok: true });
     }
 
     // Reviews (unchanged)
